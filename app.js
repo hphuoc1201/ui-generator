@@ -418,20 +418,33 @@ const HINTS = {
 };
 const HINT_DEFAULT = "vd: các thành phần / nội dung cụ thể bạn muốn có trên màn này...";
 
-/* ---------- State ---------- */
-const LS_KEY = "ui-prompt-studio-v1";
+/* ---------- State: dự án ---------- */
+const LS_KEY = "ui-prompt-studio-v1";              // key cũ (để migrate)
+const OLD_PROJ_KEY = "ui-prompt-studio-projects-v1"; // key cũ (để migrate)
+const PROJ_KEY = "ups-projects-v2";
+const ACTIVE_KEY = "ups-active-project";
+const MAX_SELECT = 3;
+
 const DEFAULT_STYLE = {
   platform: "ios", design: "minimal", mode: "light", fidelity: "high",
   aspect: "phone", textlang: "vi", color: "#2F80ED", extra: "",
   appContext: "", refMode: false, refFollow: "style",
 };
-let state = {
-  style: Object.assign({}, DEFAULT_STYLE),
-  selected: {},   // id -> true
-  notes: {},      // id -> string
-  fields: {},     // screenId -> { fieldKey: value }
-  custom: [],     // {id, name, base, group:"Tuỳ chỉnh"}
-};
+
+let projects = {};   // id -> project
+let state = null;    // = project đang mở (chứa style/selected/notes/fields/custom/features + meta)
+
+function blankProject(name) {
+  return {
+    id: "p" + Date.now() + Math.floor(Math.random() * 1000),
+    name: name || "Dự án mới",
+    createdAt: Date.now(), updatedAt: Date.now(),
+    style: Object.assign({}, DEFAULT_STYLE),
+    selected: {}, notes: {}, fields: {}, custom: [],
+    flagged: {},  // màn thuộc dự án (từ feature list) -> hiện nhóm riêng trên đầu
+    features: [], // các dòng CSV đã import: {feature, screen, note, matchedId}
+  };
+}
 
 /* Lấy/đặt giá trị câu trả lời cho 1 field của 1 màn */
 function fieldVal(screen, f) {
@@ -478,18 +491,43 @@ const ASPECT_SHORT = {
   desktop: "16:9 landscape",
 };
 
-function load() {
+function loadAll() {
+  try { projects = JSON.parse(localStorage.getItem(PROJ_KEY) || "{}"); } catch (e) { projects = {}; }
+  // Migration từ bản cũ (working state + snapshots) -> dự án v2
   try {
-    const raw = localStorage.getItem(LS_KEY);
-    if (raw) {
-      const saved = JSON.parse(raw);
-      state = Object.assign(state, saved);
-      state.style = Object.assign({}, DEFAULT_STYLE, saved.style || {});
+    if (!Object.keys(projects).length) {
+      const oldRaw = localStorage.getItem(LS_KEY);
+      if (oldRaw) {
+        const old = JSON.parse(oldRaw);
+        const p = blankProject("Dự án đầu tiên");
+        p.style = Object.assign({}, DEFAULT_STYLE, old.style || {});
+        p.selected = old.selected || {}; p.notes = old.notes || {};
+        p.fields = old.fields || {}; p.custom = old.custom || [];
+        projects[p.id] = p;
+      }
+      const oldProjRaw = localStorage.getItem(OLD_PROJ_KEY);
+      if (oldProjRaw) {
+        const oldProjs = JSON.parse(oldProjRaw);
+        Object.keys(oldProjs).forEach(name => {
+          const s = oldProjs[name];
+          const p = blankProject(name);
+          p.style = Object.assign({}, DEFAULT_STYLE, s.style || {});
+          p.selected = s.selected || {}; p.notes = s.notes || {};
+          p.fields = s.fields || {}; p.custom = s.custom || [];
+          projects[p.id] = p;
+        });
+      }
+      if (Object.keys(projects).length) saveAll();
+      localStorage.removeItem(LS_KEY); localStorage.removeItem(OLD_PROJ_KEY);
     }
-  } catch (e) { /* ignore corrupted storage */ }
+  } catch (e) { /* migration best-effort */ }
+}
+function saveAll() {
+  try { localStorage.setItem(PROJ_KEY, JSON.stringify(projects)); } catch (e) {}
 }
 function save() {
-  try { localStorage.setItem(LS_KEY, JSON.stringify(state)); } catch (e) {}
+  if (state) state.updatedAt = Date.now();
+  saveAll();
 }
 
 /* ---------- Prompt building ---------- */
@@ -550,21 +588,26 @@ function buildPrompt(screen) {
   return p.replace(/\s+/g, " ").trim();
 }
 
-/* Chế độ gộp: 1 prompt yêu cầu vẽ nhiều màn trong CÙNG một ảnh */
+/* Chế độ gộp: 1 prompt yêu cầu vẽ nhiều màn trong CÙNG một ảnh.
+   Tỉ lệ ảnh tổng theo số màn: 2 màn -> 1:1, 3 màn -> 16:9.
+   Nội dung từng màn giữ CHI TIẾT đầy đủ như prompt đơn. */
 function buildComposite(screens) {
   const s = state.style;
   const n = screens.length;
   const per = ASPECT_SHORT[s.aspect] || "9:19.5 portrait";
   const platformTxt = opt("platform", s.platform);
-  const layout = n <= 4 ? "a single horizontal row" : "a neat grid";
+  const overall = n === 2
+    ? "exactly 1:1 (a perfect square)"
+    : "exactly 16:9 (wide landscape)";
   const lines = [];
   lines.push(
-    "Create ONE single image containing " + n + " different UI screens of " + platformTxt +
-    ", arranged in " + layout + ", evenly spaced on a clean neutral background."
+    "Create an image: ONE single image with an overall aspect ratio of " + overall +
+    ", containing " + n + " different UI screens of " + platformTxt +
+    " placed side by side in a single horizontal row, evenly spaced on a clean neutral background."
   );
   lines.push(
-    "Overall image: wide landscape (about 16:9), high resolution, large enough to show every screen clearly. " +
-    "Each screen is a separate mockup with " + per + " aspect ratio and a short title label above it."
+    "Each screen is " + opt("fidelity", s.fidelity) + " UI mockup with a " + per +
+    " aspect ratio and a short title label above it."
   );
   if (s.refMode) {
     const follow = s.refFollow === "layout"
@@ -582,12 +625,17 @@ function buildComposite(screens) {
     );
   }
   if (s.appContext && s.appContext.trim()) lines.push("Product context: " + s.appContext.trim() + ".");
-  lines.push(opt("textlang", s.textlang) + ". Realistic content, consistent spacing, no lorem ipsum.");
+  lines.push(opt("textlang", s.textlang) + ". Realistic content, consistent spacing, crisp icons, no lorem ipsum.");
   if (s.extra && s.extra.trim()) lines.push(s.extra.trim() + ".");
+  lines.push(
+    "IMPORTANT: Render EVERY screen fully detailed, as if each were a standalone high-fidelity mockup. " +
+    "Do NOT simplify, crop, or omit any of the components listed for each screen below."
+  );
   lines.push("The " + n + " screens, in order:");
   screens.forEach((sc, i) => {
     const note = (state.notes[sc.id] || "").trim();
-    lines.push((i + 1) + ") " + sc.name + " — " + screenContent(sc) + (note ? " " + note + "." : ""));
+    lines.push((i + 1) + ") " + sc.name + " — " + screenContent(sc) +
+      (note ? " Additional requirements: " + note + "." : ""));
   });
   return lines.join("\n");
 }
@@ -605,6 +653,7 @@ function fillSelect(id, kind) {
 
 /* Đồng bộ giá trị từ state -> các ô nhập (không gắn listener) */
 function syncStyleInputs() {
+  if (!state) return;
   const s = state.style;
   $("#s_platform").value = s.platform;
   $("#s_design").value = s.design;
@@ -622,6 +671,7 @@ function syncStyleInputs() {
 
 /* Bật/tắt hiển thị các trường tuỳ theo chế độ ảnh mẫu */
 function updateRefUI() {
+  if (!state) return;
   const on = !!state.style.refMode;
   $("#ref_opts").style.display = on ? "block" : "none";
   // Khi bám theo ảnh mẫu: ẩn các trường style-bằng-chữ để tránh xung đột
@@ -679,31 +729,41 @@ function initStylePanel() {
 }
 
 function renderLibrary() {
+  if (!state) return;
   const q = ($("#search").value || "").toLowerCase().trim();
   const screens = allScreens().filter(s =>
     !q || s.name.toLowerCase().includes(q) || (s.desc || "").toLowerCase().includes(q) || s.id.includes(q)
   );
 
-  // group order
-  const groups = [];
-  screens.forEach(s => { if (!groups.includes(s.group)) groups.push(s.group); });
-
-  const container = $("#library");
-  container.innerHTML = groups.map(g => {
-    const items = screens.filter(s => s.group === g);
-    return `<div class="group">
-      <h3>${g} <span class="count">(${items.length})</span></h3>
+  const groupHTML = (title, items) => `<div class="group">
+      <h3>${title} <span class="count">(${items.length})</span></h3>
       <div class="cards">
         ${items.map(cardHTML).join("")}
       </div>
     </div>`;
-  }).join("") || `<p style="color:var(--muted)">Không tìm thấy màn hình nào.</p>`;
+
+  // Màn thuộc dự án (từ feature list) hiện nhóm riêng trên đầu
+  const flagged = screens.filter(s => state.flagged && state.flagged[s.id]);
+  const rest = screens.filter(s => !(state.flagged && state.flagged[s.id]));
+  const groups = [];
+  rest.forEach(s => { if (!groups.includes(s.group)) groups.push(s.group); });
+
+  const container = $("#library");
+  container.innerHTML =
+    ((flagged.length ? groupHTML("📌 Màn hình của dự án", flagged) : "") +
+     groups.map(g => groupHTML(g, rest.filter(s => s.group === g))).join(""))
+    || `<p style="color:var(--muted)">Không tìm thấy màn hình nào.</p>`;
 
   // wire up card events
   screens.forEach(s => {
     const root = document.getElementById("card-" + s.id);
     if (!root) return;
     root.querySelector(".chk").addEventListener("change", e => {
+      if (e.target.checked && selectedScreens().length >= MAX_SELECT) {
+        e.target.checked = false;
+        alert("Tối đa " + MAX_SELECT + " màn mỗi lần tạo ảnh (để ảnh đủ chi tiết). Hãy bỏ chọn bớt hoặc tạo theo đợt.");
+        return;
+      }
       if (e.target.checked) state.selected[s.id] = true; else delete state.selected[s.id];
       root.classList.toggle("selected", !!state.selected[s.id]);
       save(); updateCount();
@@ -720,6 +780,7 @@ function renderLibrary() {
     if (rm) rm.addEventListener("click", () => {
       state.custom = state.custom.filter(c => c.id !== s.id);
       delete state.selected[s.id]; delete state.notes[s.id]; delete state.fields[s.id];
+      if (state.flagged) delete state.flagged[s.id];
       save(); renderLibrary();
     });
     wireFields(root, s);
@@ -835,12 +896,13 @@ function selectedScreens() {
 function updateCount() {
   const n = selectedScreens().length;
   const info = $("#sel_info");
-  if (n === 0) info.textContent = "Chưa chọn màn nào";
-  else if (n === 1) info.innerHTML = "Đã chọn <b>1</b> màn → 1 prompt (1 ảnh)";
-  else info.innerHTML = "Đã chọn <b>" + n + "</b> màn → gộp vào 1 ảnh";
+  if (n === 0) info.textContent = "Chưa chọn màn nào (tối đa " + MAX_SELECT + ")";
+  else if (n === 1) info.innerHTML = "Đã chọn <b>1/" + MAX_SELECT + "</b> màn → ảnh dọc 9:19.5";
+  else if (n === 2) info.innerHTML = "Đã chọn <b>2/" + MAX_SELECT + "</b> màn → 1 ảnh vuông 1:1";
+  else info.innerHTML = "Đã chọn <b>3/" + MAX_SELECT + "</b> màn → 1 ảnh ngang 16:9";
 }
 
-/* Tự động: >1 màn -> gộp 1 ảnh; 1 màn -> 1 prompt riêng */
+/* Tự động: 1 màn -> prompt đơn (9:19.5); 2 màn -> gộp ảnh 1:1; 3 màn -> gộp ảnh 16:9 */
 function buildAllText() {
   const sel = selectedScreens();
   if (sel.length <= 1) return sel.map(s => buildPrompt(s)).join("\n\n");
@@ -902,75 +964,220 @@ const KEYWORDS = {
   map: ["map", "bản đồ", "ban do", "location", "vị trí"],
 };
 
-function runImport(text) {
-  const lines = text.split("\n").map(l => l.replace(/^[\s\-\*•·\d\.\)]+/, "").trim()).filter(Boolean);
-  const matchedIds = new Set();
-  const unmatched = [];
-  lines.forEach(line => {
-    const low = line.toLowerCase();
-    let hit = false;
-    for (const id in KEYWORDS) {
-      if (KEYWORDS[id].some(k => low.includes(k))) { matchedIds.add(id); hit = true; }
-    }
-    if (!hit) unmatched.push(line);
-  });
-  matchedIds.forEach(id => { state.selected[id] = true; });
-  const added = [];
-  unmatched.forEach((line, i) => {
-    const id = "custom-imp-" + Date.now() + "-" + i;
-    const scr = { id, name: line, base: "a " + line + " screen", group: "Tuỳ chỉnh", desc: "Từ feature list" };
-    state.custom.push(scr); state.selected[id] = true; added.push(scr);
-  });
-  save(); renderLibrary();
-  return { matchedIds: [...matchedIds], added };
+/* ---------- CSV: template, parser, phân tích ---------- */
+const CSV_TEMPLATE_ROWS = [
+  ["Tính năng", "Màn hình", "Ghi chú"],
+  ["Đăng nhập", "Login", "Chỉ đăng nhập bằng Google và Apple"],
+  ["Đăng ký tài khoản", "Sign up", "Có mã giới thiệu"],
+  ["Trang chủ", "Dashboard", "Hiện doanh thu, biểu đồ, KPI"],
+  ["Giỏ hàng", "Cart", ""],
+  ["Thanh toán", "Checkout", "Hỗ trợ COD và ví điện tử"],
+  ["Chat với người bán", "Chat", ""],
+  ["Đặt lịch hẹn", "Booking", "Chọn ngày giờ, xác nhận lịch"],
+];
+function downloadTemplate() {
+  const csv = "\uFEFF" + CSV_TEMPLATE_ROWS.map(r =>
+    r.map(c => /[",\n;]/.test(c) ? '"' + c.replace(/"/g, '""') + '"' : c).join(",")
+  ).join("\r\n");
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "feature-list-template.csv";
+  document.body.appendChild(a); a.click();
+  setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500);
 }
 
-/* ---------- Quản lý dự án ---------- */
-const PROJ_KEY = "ui-prompt-studio-projects-v1";
-function loadProjects() { try { return JSON.parse(localStorage.getItem(PROJ_KEY) || "{}"); } catch (e) { return {}; } }
-function saveProjects(p) { try { localStorage.setItem(PROJ_KEY, JSON.stringify(p)); } catch (e) {} }
-function snapshot() {
-  return {
-    style: state.style, selected: state.selected, notes: state.notes,
-    fields: state.fields, custom: state.custom,
-    savedAt: new Date().toLocaleDateString("vi-VN"),
+/* Parser CSV viết tay: hỗ trợ ngoặc kép, phẩy/; trong ô, xuống dòng trong ô, BOM */
+function parseCSV(text) {
+  text = ("" + text).replace(/^\uFEFF/, "").replace(/\r\n/g, "\n").replace(/\r/g, "\n");
+  // đoán dấu phân cách từ dòng đầu (Excel VN thường xuất ";")
+  const firstLine = text.split("\n")[0] || "";
+  const delim = (firstLine.split(";").length > firstLine.split(",").length) ? ";" : ",";
+  const rows = []; let cur = [""], inQ = false, ci = 0;
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (inQ) {
+      if (ch === '"') {
+        if (text[i + 1] === '"') { cur[ci] += '"'; i++; } else inQ = false;
+      } else cur[ci] += ch;
+    } else if (ch === '"') inQ = true;
+    else if (ch === delim) { cur.push(""); ci++; }
+    else if (ch === "\n") { rows.push(cur); cur = [""]; ci = 0; }
+    else cur[ci] += ch;
+  }
+  if (cur.length > 1 || cur[0].trim()) rows.push(cur);
+  return rows.map(r => r.map(c => c.trim())).filter(r => r.some(c => c));
+}
+
+/* Nhận diện 1 chuỗi -> id màn template (ưu tiên cột Màn hình) */
+function matchScreenId(screenName, featureName) {
+  const tryMatch = txt => {
+    if (!txt) return null;
+    const low = txt.toLowerCase();
+    for (const id in KEYWORDS) {
+      if (KEYWORDS[id].some(k => low.includes(k))) return id;
+    }
+    return null;
   };
+  return tryMatch(screenName) || tryMatch(featureName) || tryMatch((featureName || "") + " " + (screenName || ""));
 }
-function applySnapshot(s) {
-  state.style = Object.assign({}, DEFAULT_STYLE, s.style || {});
-  state.selected = s.selected || {};
-  state.notes = s.notes || {};
-  state.fields = s.fields || {};
-  state.custom = s.custom || [];
-  save(); syncStyleInputs(); updateRefUI(); renderLibrary();
+
+/* Phân tích các dòng CSV -> [{feature, screen, note, matchedId}] */
+function analyzeCSV(text) {
+  const rows = parseCSV(text);
+  if (!rows.length) return [];
+  // xác định cột qua header (không phụ thuộc thứ tự); không có header -> 0,1,2
+  let fi = 0, si = 1, ni = 2, start = 0;
+  const head = rows[0].map(c => c.toLowerCase());
+  const findCol = pats => head.findIndex(h => pats.some(p => h.includes(p)));
+  const f = findCol(["tính năng", "tinh nang", "feature"]);
+  const s = findCol(["màn hình", "man hinh", "screen"]);
+  const n = findCol(["ghi chú", "ghi chu", "note", "mô tả", "mo ta"]);
+  if (f >= 0 || s >= 0) { fi = f >= 0 ? f : 0; si = s >= 0 ? s : 1; ni = n >= 0 ? n : 2; start = 1; }
+  const out = [];
+  for (let i = start; i < rows.length; i++) {
+    const r = rows[i];
+    const feature = r[fi] || "", screen = r[si] || "", note = r[ni] || "";
+    if (!feature && !screen) continue;
+    out.push({ feature, screen, note, matchedId: matchScreenId(screen, feature) });
+  }
+  return out;
 }
-function renderProjects() {
-  const projs = loadProjects();
-  const names = Object.keys(projs).sort();
-  const list = $("#proj_list");
-  if (!names.length) { list.innerHTML = `<div class="proj-empty">Chưa có dự án nào được lưu.</div>`; return; }
-  list.innerHTML = names.map(n => {
-    const p = projs[n];
-    const cnt = Object.keys(p.selected || {}).length;
-    return `<div class="proj-row" data-name="${escapeHtml(n)}">
-      <div class="pname">${escapeHtml(n)}</div>
-      <span class="pmeta">${cnt} màn · ${escapeHtml(p.savedAt || "")}</span>
-      <button class="btn-ghost btn-sm proj-load">Mở</button>
-      <button class="btn-ghost btn-sm proj-del">🗑</button>
+
+/* Áp kết quả phân tích vào dự án: đánh dấu màn thuộc dự án (flagged),
+   tạo màn mới cho dòng lạ, điền ghi chú. KHÔNG tự tick chọn (giới hạn 3 màn/lần). */
+function applyAnalysis(project, analysis) {
+  if (!project.flagged) project.flagged = {};
+  analysis.forEach((row, i) => {
+    if (row.matchedId) {
+      project.flagged[row.matchedId] = true;
+      if (row.note) {
+        const prev = (project.notes[row.matchedId] || "").trim();
+        project.notes[row.matchedId] = prev ? (prev.replace(/\.?$/, "") + ". " + row.note) : row.note;
+      }
+    } else {
+      // tên hiển thị ưu tiên cột Tính năng (thường là tiếng Việt, dễ hiểu hơn)
+      const name = row.feature || row.screen;
+      const screenEn = row.screen || row.feature;
+      const id = "custom-csv-" + Date.now() + "-" + i;
+      project.custom.push({ id, name, base: "a \"" + screenEn + "\" screen for this app.", group: "Tuỳ chỉnh", desc: "Từ feature list" });
+      project.flagged[id] = true;
+      if (row.note) project.notes[id] = row.note;
+    }
+  });
+  project.features = (project.features || []).concat(analysis);
+}
+
+/* ---------- View router & Dashboard ---------- */
+function showView(v) {
+  $("#view_dashboard").style.display = v === "dashboard" ? "" : "none";
+  $("#view_workspace").style.display = v === "workspace" ? "" : "none";
+  $("#back_dash").style.display = v === "workspace" ? "" : "none";
+  $("#proj_title").textContent = (v === "workspace" && state) ? "· " + state.name : "";
+  $("#head_sub").textContent = v === "workspace"
+    ? "Tinh chỉnh từng màn hình rồi Copy prompt dán vào ChatGPT."
+    : "Thiết kế UI bằng prompt — quản lý theo dự án, miễn phí, không cần API.";
+  if (v === "dashboard") renderDashboard();
+}
+
+function openProject(id) {
+  if (!projects[id]) return;
+  state = projects[id];
+  if (!state.flagged) state.flagged = {};
+  try { localStorage.setItem(ACTIVE_KEY, id); } catch (e) {}
+  syncStyleInputs(); updateRefUI(); renderLibrary();
+  showView("workspace");
+}
+
+function fmtDate(ts) {
+  if (!ts) return "";
+  const d = new Date(ts);
+  return d.toLocaleDateString("vi-VN") + " " + d.toTimeString().slice(0, 5);
+}
+
+function renderDashboard() {
+  const grid = $("#proj_grid");
+  const list = Object.values(projects).sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
+  let lastId = null;
+  try { lastId = localStorage.getItem(ACTIVE_KEY); } catch (e) {}
+  const cards = list.map(p => {
+    const nScr = Object.keys(p.flagged || {}).length || Object.keys(p.selected || {}).length;
+    const recent = p.id === lastId ? ` <span style="color:var(--ok);font-size:11px;">· mở gần đây</span>` : "";
+    return `<div class="pcard" data-id="${p.id}">
+      <div class="pc-name">${escapeHtml(p.name)}${recent}</div>
+      <div class="pc-meta">${nScr} màn hình · sửa ${fmtDate(p.updatedAt)}</div>
+      <div class="pc-actions">
+        <button class="btn-primary btn-sm p-open">Mở</button>
+        <button class="btn-ghost btn-sm p-rename" title="Đổi tên">✎</button>
+        <button class="btn-ghost btn-sm p-dup" title="Nhân bản">⧉</button>
+        <button class="btn-ghost btn-sm p-del" title="Xoá">🗑</button>
+      </div>
     </div>`;
   }).join("");
-  list.querySelectorAll(".proj-row").forEach(row => {
-    const name = row.getAttribute("data-name");
-    row.querySelector(".proj-load").addEventListener("click", () => {
-      applySnapshot(loadProjects()[name]);
-      $("#dlg_projects").close();
+  grid.innerHTML = cards +
+    `<div class="pcard pcard-new" id="pcard_new">＋ Tạo dự án mới</div>` +
+    (list.length ? "" : `<div class="dash-empty">Chưa có dự án nào — bấm "＋ Tạo dự án mới" để bắt đầu, hoặc tải CSV template để điền feature list trước.</div>`);
+
+  grid.querySelectorAll(".pcard[data-id]").forEach(card => {
+    const id = card.getAttribute("data-id");
+    card.querySelector(".p-open").addEventListener("click", () => openProject(id));
+    card.querySelector(".p-rename").addEventListener("click", () => {
+      const name = prompt("Tên mới cho dự án:", projects[id].name);
+      if (name && name.trim()) { projects[id].name = name.trim(); projects[id].updatedAt = Date.now(); saveAll(); renderDashboard(); }
     });
-    row.querySelector(".proj-del").addEventListener("click", () => {
-      if (!confirm("Xoá dự án \"" + name + "\"?")) return;
-      const p = loadProjects(); delete p[name]; saveProjects(p); renderProjects();
+    card.querySelector(".p-dup").addEventListener("click", () => {
+      const src = projects[id];
+      const copy = JSON.parse(JSON.stringify(src));
+      copy.id = "p" + Date.now() + Math.floor(Math.random() * 1000);
+      copy.name = src.name + " (bản sao)";
+      copy.createdAt = copy.updatedAt = Date.now();
+      projects[copy.id] = copy; saveAll(); renderDashboard();
+    });
+    card.querySelector(".p-del").addEventListener("click", () => {
+      if (!confirm("Xoá dự án \"" + projects[id].name + "\"? Hành động này không hoàn tác được.")) return;
+      delete projects[id]; saveAll(); renderDashboard();
     });
   });
+  const newCard = $("#pcard_new");
+  if (newCard) newCard.addEventListener("click", () => openCsvDialog("create"));
 }
+
+/* ---------- Dialog CSV (tạo dự án / import vào dự án đang mở) ---------- */
+let csvMode = "create"; // "create" | "import"
+let csvAnalysis = null;
+
+function openCsvDialog(mode) {
+  csvMode = mode; csvAnalysis = null;
+  $("#csv_title").textContent = mode === "create" ? "＋ Tạo dự án mới" : "📥 Import CSV vào dự án";
+  $("#csv_name_field").style.display = mode === "create" ? "" : "none";
+  $("#csv_apply").textContent = mode === "create" ? "Tạo dự án" : "Áp dụng vào dự án";
+  $("#csv_proj_name").value = "";
+  $("#csv_file").value = "";
+  $("#csv_text").value = "";
+  $("#csv_preview").innerHTML = "";
+  $("#dlg_csv").showModal();
+}
+
+function renderCsvPreview(analysis) {
+  const nameOf = id => { const sc = allScreensStatic().find(s => s.id === id); return sc ? sc.name : id; };
+  if (!analysis.length) {
+    $("#csv_preview").innerHTML = `<div class="csv-summary">Không đọc được dòng nào — kiểm tra lại nội dung/định dạng CSV.</div>`;
+    return;
+  }
+  const rows = analysis.map(r => `<tr>
+    <td>${escapeHtml(r.feature || "")}</td>
+    <td>${escapeHtml(r.screen || "")}</td>
+    <td>${r.matchedId ? `<span class="map-ok">✓ ${escapeHtml(nameOf(r.matchedId))}</span>` : `<span class="map-new">＋ Màn mới</span>`}</td>
+    <td>${escapeHtml(r.note || "")}</td>
+  </tr>`).join("");
+  const matched = analysis.filter(r => r.matchedId).length;
+  $("#csv_preview").innerHTML =
+    `<table><thead><tr><th>Tính năng</th><th>Màn hình</th><th>Map thành</th><th>Ghi chú</th></tr></thead><tbody>${rows}</tbody></table>` +
+    `<div class="csv-summary">✅ ${matched} màn nhận diện được · ➕ ${analysis.length - matched} màn mới sẽ được tạo. Ghi chú sẽ tự điền vào ô "Yêu cầu thêm" của màn tương ứng.</div>`;
+}
+
+/* Danh sách template gốc (không phụ thuộc dự án đang mở — dùng cho preview) */
+function allScreensStatic() { return SCREENS; }
 
 /* ---------- Toolbar & actions ---------- */
 function initTheme() {
@@ -989,16 +1196,7 @@ function initTheme() {
 function initActions() {
   $("#search").addEventListener("input", renderLibrary);
 
-  $("#select_all").addEventListener("click", () => {
-    // select only currently visible (filtered) screens
-    const q = ($("#search").value || "").toLowerCase().trim();
-    allScreens().forEach(s => {
-      const match = !q || s.name.toLowerCase().includes(q) || (s.desc || "").toLowerCase().includes(q) || s.id.includes(q);
-      if (match) state.selected[s.id] = true;
-    });
-    save(); renderLibrary();
-  });
-  $("#clear_all").addEventListener("click", () => { state.selected = {}; save(); renderLibrary(); });
+  $("#clear_all").addEventListener("click", () => { if (!state) return; state.selected = {}; save(); renderLibrary(); });
 
   $("#copy_all").addEventListener("click", e => {
     if (selectedScreens().length === 0) { alert("Hãy chọn ít nhất 1 màn hình."); return; }
@@ -1028,42 +1226,55 @@ function initActions() {
     save(); dlgA.close(); renderLibrary();
   });
 
-  // import feature list
-  const dlgI = $("#dlg_import");
-  $("#import_features").addEventListener("click", () => { $("#import_result").innerHTML = ""; dlgI.showModal(); });
-  $("#close_import").addEventListener("click", () => dlgI.close());
-  $("#run_import").addEventListener("click", () => {
-    const text = $("#import_text").value.trim();
-    if (!text) { alert("Hãy dán danh sách tính năng."); return; }
-    const r = runImport(text);
-    const names = id => (allScreens().find(s => s.id === id) || {}).name || id;
-    const matchedHtml = r.matchedIds.length
-      ? r.matchedIds.map(id => `<span class="tag">${escapeHtml(names(id))}</span>`).join("")
-      : "<i>không có</i>";
-    const addedHtml = r.added.length
-      ? r.added.map(s => `<span class="tag">${escapeHtml(s.name)}</span>`).join("")
-      : "<i>không có</i>";
-    $("#import_result").innerHTML =
-      `<div class="rsec"><b>✅ Đã nhận diện &amp; chọn (${r.matchedIds.length}):</b><br/>${matchedHtml}</div>` +
-      `<div class="rsec"><b>➕ Thêm thành màn tuỳ chỉnh (${r.added.length}):</b><br/>${addedHtml}</div>` +
-      `<div class="rsec" style="color:var(--muted)">Đóng hộp thoại để xem &amp; tinh chỉnh các màn đã chọn. Màn tuỳ chỉnh có thể xoá bằng nút ✕.</div>`;
+  // dashboard & điều hướng
+  $("#back_dash").addEventListener("click", () => showView("dashboard"));
+  $("#new_project").addEventListener("click", () => openCsvDialog("create"));
+  $("#dl_template").addEventListener("click", downloadTemplate);
+  $("#dl_template2").addEventListener("click", e => { e.preventDefault(); downloadTemplate(); });
+
+  // dialog CSV (tạo dự án / import)
+  const dlgCsv = $("#dlg_csv");
+  $("#import_features").addEventListener("click", () => openCsvDialog("import"));
+  $("#csv_close").addEventListener("click", () => dlgCsv.close());
+
+  const getCsvText = cb => {
+    const file = $("#csv_file").files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = () => cb("" + reader.result);
+      reader.onerror = () => cb("");
+      reader.readAsText(file, "utf-8");
+    } else cb($("#csv_text").value || "");
+  };
+
+  $("#csv_analyze").addEventListener("click", () => {
+    getCsvText(text => {
+      if (!text.trim()) { alert("Chọn file CSV hoặc dán nội dung trước."); return; }
+      csvAnalysis = analyzeCSV(text);
+      renderCsvPreview(csvAnalysis);
+    });
   });
 
-  // projects
-  const dlgProj = $("#dlg_projects");
-  $("#open_projects").addEventListener("click", () => { $("#proj_name").value = ""; renderProjects(); dlgProj.showModal(); });
-  $("#close_projects").addEventListener("click", () => dlgProj.close());
-  $("#proj_save").addEventListener("click", () => {
-    const name = $("#proj_name").value.trim();
-    if (!name) { alert("Nhập tên dự án."); return; }
-    const p = loadProjects();
-    if (p[name] && !confirm("Dự án \"" + name + "\" đã tồn tại. Ghi đè?")) return;
-    p[name] = snapshot(); saveProjects(p); $("#proj_name").value = ""; renderProjects();
-  });
-  $("#proj_new").addEventListener("click", () => {
-    if (!confirm("Xoá toàn bộ lựa chọn hiện tại để bắt đầu dự án mới? (Các dự án đã lưu vẫn còn)")) return;
-    state.selected = {}; state.notes = {}; state.fields = {}; state.custom = [];
-    save(); renderLibrary(); dlgProj.close();
+  $("#csv_apply").addEventListener("click", () => {
+    const finish = analysis => {
+      if (csvMode === "create") {
+        const name = $("#csv_proj_name").value.trim();
+        if (!name) { alert("Nhập tên dự án."); return; }
+        const p = blankProject(name);
+        if (analysis && analysis.length) applyAnalysis(p, analysis);
+        projects[p.id] = p; saveAll();
+        dlgCsv.close();
+        openProject(p.id);
+      } else {
+        if (!analysis || !analysis.length) { alert("Chưa có dữ liệu — bấm Phân tích trước, hoặc chọn file/dán nội dung."); return; }
+        applyAnalysis(state, analysis); save();
+        dlgCsv.close();
+        renderLibrary();
+      }
+    };
+    // nếu người dùng chưa bấm Phân tích nhưng có nội dung -> tự phân tích
+    if (csvAnalysis) finish(csvAnalysis);
+    else getCsvText(text => finish(text.trim() ? analyzeCSV(text) : []));
   });
 }
 
@@ -1076,8 +1287,8 @@ if ("serviceWorker" in navigator && location.protocol.startsWith("http")) {
 }
 
 /* ---------- Boot ---------- */
-load();
+loadAll();
 initTheme();
 initStylePanel();
 initActions();
-renderLibrary();
+showView("dashboard");

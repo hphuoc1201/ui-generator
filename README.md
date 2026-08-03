@@ -1,133 +1,101 @@
 # 🎨 UI Prompt Studio
 
-Công cụ **tạo hàng loạt prompt chuẩn** để dán vào ChatGPT sinh ảnh giao diện UI
-(mobile app / web app). **Miễn phí, không cần API, không cần cài đặt** — chỉ là
-một file HTML mở bằng trình duyệt.
+Nền tảng **thiết kế UI bằng prompt, quản lý theo dự án** — không cần Figma hay
+Photoshop. Bạn kiểm soát thiết kế bằng prompt chuẩn dán vào ChatGPT.
+**Miễn phí, không cần API, không cần cài đặt** — một trang web tĩnh.
 
-## Vì sao có tool này?
+## Flow chính
 
-Khi dùng web ChatGPT, mỗi lần chỉ tạo được 1 ảnh và phải đợi xong mới tạo ảnh
-tiếp theo. Tool này giúp bạn:
+```
+1. Tải CSV template → điền feature list của app (Tính năng, Màn hình, Ghi chú)
+2. Vào trang → Tạo dự án mới (đặt tên) → upload/dán CSV
+3. Hệ thống phân tích CSV → tự nhận diện các màn hình dự án cần
+4. Vào workspace: tinh chỉnh từng màn (câu hỏi, ô "Khác", ghi chú)
+5. Chọn tối đa 3 màn → Copy prompt → dán vào ChatGPT → nhận ảnh UI
+```
 
-1. Cấu hình **style một lần** (nền tảng, phong cách, màu, sáng/tối, tỉ lệ...).
-2. Chọn các màn hình cần (Login, Sign up, Home, Cart...) từ thư viện có sẵn.
-3. Tool tự ghép style vào từng màn → cho ra **prompt hoàn chỉnh**.
-4. **Copy tất cả** rồi mở **nhiều tab ChatGPT**, mỗi tab dán 1 prompt → nhiều
-   ảnh được tạo **cùng lúc**, hoàn toàn miễn phí.
+## Dashboard & Dự án
 
-## Cách dùng
+- Mở trang là thấy **Dashboard**: danh sách dự án dạng card (tên, số màn, lần
+  sửa cuối) + nút **＋ Tạo dự án mới** và **📄 Tải CSV template**.
+- Mỗi dự án lưu riêng toàn bộ: style, màn đã chọn, câu trả lời, màn tuỳ chỉnh,
+  ghi chú. Có thể **Mở / Đổi tên ✎ / Nhân bản ⧉ / Xoá 🗑**.
+- Trong workspace, nút **← Dự án** quay về dashboard; mọi thay đổi tự lưu.
 
-1. Mở file **`index.html`** bằng trình duyệt (nháy đúp là được).
-2. Bên trái: chỉnh **Style chung** — áp dụng cho mọi màn.
-3. Bên phải: tick chọn các màn hình cần. Có thể ghi chú riêng cho từng màn.
-4. Bấm **📋 Copy tất cả** (các prompt được đánh số 1, 2, 3...).
-5. Mở nhiều tab ChatGPT, mỗi tab dán 1 prompt và bấm tạo ảnh.
+## CSV Feature list
 
-> 💡 Mẹo: Muốn thêm màn không có trong thư viện? Bấm **＋ Thêm màn tuỳ chỉnh**,
-> nhập mô tả bố cục — style chung vẫn được áp dụng tự động.
+File CSV 3 cột (mở bằng Excel / Google Sheets đều được, lưu định dạng CSV):
 
-## Kiểm soát style bằng ảnh mẫu (quan trọng)
+```csv
+Tính năng,Màn hình,Ghi chú
+Đăng nhập,Login,"Chỉ đăng nhập bằng Google và Apple"
+Trang chủ,Dashboard,"Hiện doanh thu, biểu đồ, KPI"
+Đặt lịch hẹn,Booking,"Chọn ngày giờ, xác nhận lịch"
+```
 
-Nếu bạn đã có sẵn ảnh style mình thích và muốn design bám **đúng** theo đó:
+- **Tính năng**: tên tính năng (tiếng Việt thoải mái)
+- **Màn hình**: tên màn (Việt hoặc Anh đều nhận)
+- **Ghi chú**: yêu cầu riêng — sẽ tự điền vào ô "Yêu cầu thêm" của màn đó
 
-1. Bật **🎯 Dùng ảnh mẫu để kiểm soát style** ở panel bên trái.
-2. Chọn mức độ bám: *chỉ theo phong cách* (màu/font/bo góc, bố cục tự do) hoặc
-   *theo cả phong cách + bố cục tương tự*.
-3. Copy prompt và dán vào ChatGPT — **nhớ đính kèm ảnh mẫu** vào chính tin nhắn
-   đó (mỗi tab một ảnh khi chạy song song).
+Khi upload: hệ thống hiện **bảng phân tích** để bạn duyệt (dòng nào map thành
+màn template nào, dòng nào thành màn mới) rồi mới áp dụng. Các màn của dự án
+hiện trong nhóm **📌 Màn hình của dự án** trên đầu workspace. Parser hỗ trợ cả
+CSV dùng dấu `;` (Excel tiếng Việt), ô có dấu phẩy trong ngoặc kép, BOM.
+Cũng có thể **📥 Import CSV** thêm vào dự án đang mở bất cứ lúc nào.
 
-Prompt sẽ yêu cầu ChatGPT tái tạo **chính xác** bảng màu, typography, bo góc, đổ
-bóng, spacing... của ảnh mẫu, và chỉ tạo **nội dung mới** cho màn hình bạn cần.
+## Chọn màn & tỉ lệ ảnh (tự động)
 
-## Tuỳ chỉnh cho từng màn
+Chọn **tối đa 3 màn** mỗi lần tạo ảnh (để ảnh đủ chi tiết — tạo theo đợt nếu
+cần nhiều hơn):
 
-- **Câu hỏi trên từng màn**: mỗi màn có sẵn các lựa chọn để bạn kiểm soát nội
-  dung — không còn mặc định chung chung. Ví dụ:
-  - **Login:** chọn *phương thức đăng nhập* (Email, SĐT, Google, Apple, SSO...),
-    có/không *quên mật khẩu*, *ghi nhớ đăng nhập*...
-  - **OTP:** chọn *số chữ số* (4/5/6/8) và *kênh gửi* (SMS/Email/App).
-  - **Dashboard, Giỏ hàng, Thanh toán, Chat...**: chọn đúng các thành phần app
-    của bạn cần. Prompt tự cập nhật theo lựa chọn (xem trước ngay trên thẻ).
-- **Mô tả app**: điền một lần, áp dụng cho mọi màn (vd "app quản lý chi tiêu,
-  phong cách trẻ trung") để các màn cụ thể và ăn khớp nhau.
-- **Ô "Khác" cho mỗi câu hỏi**: với các câu hỏi chọn nhiều, luôn có ô *Khác (tự
-  điền)* để bạn thêm mục không có sẵn — vd trang Thanh toán tuỳ loại business có
-  thể cần thêm phần riêng. Áp dụng cho tất cả các màn.
-- **Yêu cầu thêm**: mỗi màn còn có ô nhập tự do cho yêu cầu chung.
+| Số màn chọn | Ảnh tạo ra |
+|---|---|
+| 1 màn | 1 prompt riêng — ảnh dọc **9:19.5** |
+| 2 màn | 1 prompt gộp — ảnh vuông **1:1**, 2 màn cạnh nhau |
+| 3 màn | 1 prompt gộp — ảnh ngang **16:9**, 3 màn hàng ngang |
 
-## Xuất prompt (tự động)
+Prompt gộp giữ **chi tiết đầy đủ từng màn** (mọi lựa chọn, ô "Khác", ghi chú)
+kèm chỉ dẫn *"không được rút gọn hay bỏ thành phần nào"*. Mọi prompt đều bắt
+đầu bằng **"Create an image: ..."** để ChatGPT hiểu là cần sinh ảnh.
 
-Bấm **Copy prompt** ở thanh dưới:
+## Kiểm soát nội dung từng màn
 
-- **Chọn nhiều màn** → tự động tạo **1 prompt gộp tất cả vào 1 ảnh** — ghi rõ
-  *tỉ lệ ảnh tổng (~16:9)*, *tỉ lệ từng màn* (vd 9:19.5), style dùng chung, và
-  nội dung từng màn được đánh số. (Không cần chọn kiểu xuất.)
-- **Chọn 1 màn** → 1 prompt riêng cho màn đó.
+- **Câu hỏi trên từng màn**: Login chọn phương thức đăng nhập (Email/SĐT/
+  Google/Apple/SSO...), OTP chọn số chữ số (4/5/6/8) & kênh gửi, Dashboard chọn
+  widget, Thanh toán chọn phương thức... Prompt cập nhật realtime.
+- **Ô "Khác" (tự điền)** trên mỗi câu hỏi chọn nhiều — thêm mục không có sẵn.
+- **Yêu cầu thêm**: ô tự do cho từng màn (ghi chú CSV tự điền vào đây).
+- **Mô tả app**: điền 1 lần trong style panel, áp dụng mọi màn.
 
-Mọi prompt đều bắt đầu bằng câu lệnh **“Create an image: ...”** để ChatGPT hiểu
-rõ là cần **sinh ảnh** (không phải trả lời bằng chữ).
+## Kiểm soát style bằng ảnh mẫu
 
-## Import feature list
+Bật **🎯 Dùng ảnh mẫu để kiểm soát style** ở panel trái nếu bạn đã có ảnh style
+ưng ý: prompt sẽ yêu cầu ChatGPT tái tạo **chính xác** bảng màu, typography, bo
+góc, đổ bóng, spacing... của ảnh bạn **đính kèm vào tin nhắn ChatGPT**, và chỉ
+tạo nội dung mới cho màn hình cần. Chọn mức bám: chỉ phong cách, hoặc cả bố cục.
+Khi không dùng ảnh mẫu: chọn style bằng chữ (phong cách, màu chủ đạo, sáng/tối).
 
-Có sẵn danh sách tính năng? Bấm **📥 Import feature list**, dán vào (mỗi dòng một
-mục). Hệ thống **tự nhận diện** và chọn sẵn các màn phù hợp (login, giỏ hàng,
-thanh toán, chat...); những mục lạ được **thêm thành màn tuỳ chỉnh** để bạn tinh
-chỉnh (có thể xoá bằng nút ✕ trên thẻ).
+## Giao diện
 
-## Quản lý dự án
-
-Bấm **📁 Dự án** để **lưu** toàn bộ lựa chọn hiện tại (style, màn đã chọn, câu
-trả lời, màn tuỳ chỉnh) thành một dự án có tên, **mở lại** hoặc **xoá** bất cứ
-lúc nào. Mỗi dự án là một app riêng của bạn.
-
-## Giao diện sáng/tối
-
-Có nút **☀️ Sáng / 🌙 Tối** ở góc trên phải. Mặc định theo cài đặt hệ thống của
-bạn, và ghi nhớ lựa chọn cho lần sau.
-
-## Tính năng
-
-- Thư viện template cho ~25 loại màn hình phổ biến, chia theo nhóm + tìm kiếm.
-- Panel style: nền tảng (iOS/Android/Web), phong cách thiết kế, màu chủ đạo,
-  light/dark, độ chi tiết (ảnh thật / wireframe), tỉ lệ thiết bị, ngôn ngữ chữ.
-- Xem trước prompt hoàn chỉnh của từng màn theo thời gian thực.
-- Copy từng prompt hoặc copy tất cả màn đã chọn (đánh số).
-- Ghi chú riêng cho từng màn.
-- Thêm màn tự định nghĩa.
-- Tự lưu style + lựa chọn vào trình duyệt (localStorage) — mở lại vẫn còn.
+- **☀️ Sáng / 🌙 Tối** — nút góc phải, mặc định theo hệ thống, có ghi nhớ.
+- Cài như app (**PWA**): mở link → "Thêm vào màn hình chính" (iOS/Android) hoặc
+  icon ⊕ trên thanh địa chỉ (PC/Mac). Chạy được cả khi offline.
 
 ## Dùng online trên mọi thiết bị (GitHub Pages)
 
-Deploy 1 lần để có 1 link, mở được trên iOS / Android / PC / Mac:
+1. Repo GitHub → **Settings** → (nếu Private: **Change visibility** → Public)
+2. **Settings → Pages** → Source: **Deploy from a branch**
+3. Branch: `claude/batch-ui-image-generation-ye8suj`, thư mục `/ (root)` → Save
+4. Đợi ~1 phút → link: `https://hphuoc1201.github.io/ui-generator/`
 
-1. Vào repo trên GitHub → tab **Settings**.
-2. (Nếu repo đang **Private**) kéo xuống mục **Danger Zone** → **Change visibility**
-   → đổi sang **Public**. *GitHub Pages bản miễn phí chỉ chạy với repo public.*
-   Tool này không chứa bí mật gì nên để public an toàn. (Muốn giữ private thì
-   dùng Cloudflare Pages thay thế.)
-3. Vào **Settings → Pages**.
-4. Mục **Source** chọn **Deploy from a branch**.
-5. **Branch**: chọn `claude/batch-ui-image-generation-ye8suj`, thư mục **`/ (root)`**
-   → **Save**.
-6. Đợi ~1 phút, tải lại trang. Link sẽ hiện dạng:
-   `https://hphuoc1201.github.io/ui-generator/`
-
-Mỗi lần code được cập nhật (push lên branch đó), trang tự cập nhật theo.
-
-## Cài như app (PWA)
-
-Sau khi có link, bạn có thể cài nó như một app thật:
-
-- **iPhone/iPad (Safari):** mở link → nút **Chia sẻ** → **Thêm vào MH chính**.
-- **Android (Chrome):** mở link → menu ⋮ → **Cài đặt ứng dụng / Thêm vào MH chính**.
-- **PC/Mac (Chrome/Edge):** biểu tượng **Cài đặt** ⊕ trên thanh địa chỉ.
-
-Sau khi cài, mở phát chạy ngay như app, và **dùng được cả khi offline**.
+Mỗi lần push code mới, trang tự cập nhật.
 
 ## Cấu trúc
 
-- `index.html` — giao diện + CSS.
-- `app.js` — thư viện template, cấu hình style, logic ghép prompt & copy.
+- `index.html` — giao diện (dashboard + workspace) + CSS.
+- `app.js` — thư viện màn hình & câu hỏi, CSV parser + phân tích, quản lý dự
+  án, logic ghép prompt, theme.
 - `manifest.json`, `sw.js`, `icon-*.png` — bộ PWA (cài như app + offline).
 
 Không có bước build, không phụ thuộc thư viện ngoài, chạy hoàn toàn offline.
+Dữ liệu dự án lưu trong trình duyệt (localStorage) của từng thiết bị.

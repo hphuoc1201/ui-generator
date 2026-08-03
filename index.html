@@ -180,16 +180,38 @@
   .card { position: relative; }
 
   .dlg-sub { font-size: 13px; color: var(--muted); margin: -4px 0 12px; }
-  #import_text { width: 100%; min-height: 150px; padding: 10px; border-radius: 8px; background: var(--panel-2); border: 1px solid var(--border); color: var(--text); font-family: inherit; font-size: 13px; }
-  .import-result { margin-top: 12px; font-size: 13px; }
-  .import-result .rsec { margin-bottom: 8px; }
-  .import-result .rsec b { color: var(--text); }
-  .import-result .tag { display: inline-block; font-size: 11px; padding: 2px 8px; border-radius: 999px; background: var(--panel-2); border: 1px solid var(--border); margin: 2px 3px 0 0; }
-  .proj-list { display: flex; flex-direction: column; gap: 6px; max-height: 240px; overflow-y: auto; }
-  .proj-row { display: flex; align-items: center; gap: 8px; padding: 8px 10px; background: var(--panel-2); border: 1px solid var(--border); border-radius: 8px; }
-  .proj-row .pname { flex: 1; font-size: 13px; font-weight: 600; }
-  .proj-row .pmeta { font-size: 11px; color: var(--muted); }
-  .proj-empty { font-size: 13px; color: var(--muted); padding: 6px 0; }
+  .dlg-sub a { color: var(--accent); }
+
+  /* Header */
+  .head-left { display: flex; align-items: center; gap: 12px; }
+  .proj-title { font-size: 14px; font-weight: 600; color: var(--accent); margin-left: 8px; }
+
+  /* Dashboard */
+  .dash-wrap { max-width: 1040px; margin: 0 auto; padding: 28px 24px 60px; }
+  .dash-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+  .dash-head h2 { margin: 0; font-size: 22px; }
+  .dash-actions { display: flex; gap: 10px; }
+  .dash-sub { color: var(--muted); font-size: 13px; margin: 10px 0 22px; max-width: 640px; }
+  .proj-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 14px; }
+  .pcard { background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; display: flex; flex-direction: column; gap: 8px; transition: border-color .15s; }
+  .pcard:hover { border-color: var(--accent); }
+  .pcard .pc-name { font-weight: 700; font-size: 15px; word-break: break-word; }
+  .pcard .pc-meta { font-size: 12px; color: var(--muted); }
+  .pcard .pc-actions { display: flex; gap: 6px; margin-top: auto; padding-top: 8px; flex-wrap: wrap; }
+  .pcard-new { border-style: dashed; align-items: center; justify-content: center; cursor: pointer; min-height: 130px; color: var(--muted); font-weight: 600; font-size: 14px; }
+  .pcard-new:hover { color: var(--accent); }
+  .dash-empty { grid-column: 1 / -1; color: var(--muted); font-size: 14px; padding: 20px 0; }
+
+  /* CSV dialog */
+  #csv_file { width: 100%; font-size: 13px; color: var(--muted); padding: 8px; background: var(--panel-2); border: 1px dashed var(--border); border-radius: 8px; }
+  #csv_text { width: 100%; min-height: 110px; padding: 10px; border-radius: 8px; background: var(--panel-2); border: 1px solid var(--border); color: var(--text); font-family: ui-monospace, Menlo, monospace; font-size: 12px; }
+  .csv-preview { margin-top: 12px; max-height: 260px; overflow-y: auto; }
+  .csv-preview table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .csv-preview th, .csv-preview td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  .csv-preview th { color: var(--muted); font-weight: 600; position: sticky; top: 0; background: var(--panel); }
+  .csv-preview .map-ok { color: var(--ok); font-weight: 600; }
+  .csv-preview .map-new { color: var(--accent); font-weight: 600; }
+  .csv-summary { font-size: 12px; color: var(--muted); margin-top: 8px; }
 </style>
 <script>
   /* Đặt theme sớm để tránh nháy màn hình */
@@ -204,13 +226,33 @@
 </head>
 <body>
 <header class="app">
-  <div>
-    <h1>🎨 UI Prompt Studio</h1>
-    <p>Tạo hàng loạt prompt chuẩn để dán vào ChatGPT sinh ảnh giao diện UI — miễn phí, không cần API.</p>
+  <div class="head-left">
+    <button class="btn-ghost" id="back_dash" style="display:none;">← Dự án</button>
+    <div>
+      <h1>🎨 UI Prompt Studio <span id="proj_title" class="proj-title"></span></h1>
+      <p id="head_sub">Thiết kế UI bằng prompt — quản lý theo dự án, miễn phí, không cần API.</p>
+    </div>
   </div>
   <button class="btn-ghost" id="theme_toggle" title="Chuyển sáng/tối">☀️ Sáng</button>
 </header>
 
+<!-- ================= VIEW: DASHBOARD ================= -->
+<div id="view_dashboard">
+  <div class="dash-wrap">
+    <div class="dash-head">
+      <h2>Dự án của bạn</h2>
+      <div class="dash-actions">
+        <button class="btn-ghost" id="dl_template">📄 Tải CSV template</button>
+        <button class="btn-primary" id="new_project">＋ Tạo dự án mới</button>
+      </div>
+    </div>
+    <p class="dash-sub">Flow: điền <b>feature list</b> vào CSV template → tạo dự án &amp; upload → hệ thống phân tích ra các màn hình cần thiết → tinh chỉnh &amp; copy prompt dán vào ChatGPT.</p>
+    <div class="proj-grid" id="proj_grid"></div>
+  </div>
+</div>
+
+<!-- ================= VIEW: WORKSPACE ================= -->
+<div id="view_workspace" style="display:none;">
 <div class="layout">
   <!-- ================= STYLE PANEL ================= -->
   <aside>
@@ -284,17 +326,14 @@
   <!-- ================= MAIN ================= -->
   <main>
     <div class="tip">
-      💡 Chọn nhiều màn rồi bấm <b>Copy prompt</b> → tự động tạo <b>1 prompt gộp tất cả màn vào 1 ảnh</b> (ghi rõ tỉ lệ ảnh tổng &amp; từng màn). Chọn 1 màn → 1 prompt riêng.<br />
-      📥 Có sẵn danh sách tính năng? Bấm <b>Import feature list</b> để hệ thống tự đề xuất &amp; chọn màn. 📁 Dùng <b>Dự án</b> để lưu/mở nhiều dự án khác nhau.<br />
+      💡 Chọn tối đa <b>3 màn</b> mỗi lần tạo ảnh (để ảnh đủ chi tiết): <b>1 màn → ảnh dọc 9:19.5</b> · <b>2 màn → ảnh vuông 1:1</b> · <b>3 màn → ảnh ngang 16:9</b>. Bấm <b>Copy prompt</b> rồi dán vào ChatGPT.<br />
       🎯 Muốn giữ đúng style bạn thích? Bật <b>“Dùng ảnh mẫu để kiểm soát style”</b> ở panel bên trái, rồi <b>đính kèm ảnh mẫu</b> vào tin nhắn ChatGPT.
     </div>
 
     <div class="toolbar">
       <input type="text" id="search" placeholder="🔍 Tìm màn hình... (vd: login, cart, chat)" />
-      <button class="btn-ghost" id="import_features">📥 Import feature list</button>
-      <button class="btn-ghost" id="open_projects">📁 Dự án</button>
+      <button class="btn-ghost" id="import_features">📥 Import CSV</button>
       <button class="btn-ghost" id="add_custom">＋ Thêm màn tuỳ chỉnh</button>
-      <button class="btn-ghost" id="select_all">Chọn tất cả</button>
       <button class="btn-ghost" id="clear_all">Bỏ chọn</button>
     </div>
 
@@ -308,6 +347,7 @@
   <button class="btn-ghost" id="preview_all">👁 Xem prompt</button>
   <button class="btn-primary" id="copy_all">📋 Copy prompt</button>
 </div>
+</div><!-- /view_workspace -->
 
 <!-- ================= DIALOG: preview all ================= -->
 <dialog id="dlg_preview">
@@ -319,34 +359,24 @@
   </div>
 </dialog>
 
-<!-- ================= DIALOG: import feature list ================= -->
-<dialog id="dlg_import">
-  <h3>📥 Import feature list</h3>
-  <p class="dlg-sub">Dán danh sách tính năng/màn hình (mỗi dòng một mục). Hệ thống sẽ tự nhận diện màn phù hợp, chọn sẵn, và thêm những mục lạ thành màn tuỳ chỉnh.</p>
-  <textarea id="import_text" placeholder="vd:&#10;- Đăng nhập bằng Google &amp; Apple&#10;- Quên mật khẩu qua email&#10;- Trang chủ dashboard&#10;- Giỏ hàng và thanh toán&#10;- Chat với người bán&#10;- Màn hình đặt lịch hẹn"></textarea>
-  <div class="dialog-actions">
-    <button class="btn-ghost" id="close_import">Đóng</button>
-    <button class="btn-primary" id="run_import">Phân tích &amp; chọn màn</button>
+<!-- ================= DIALOG: tạo dự án / import CSV ================= -->
+<dialog id="dlg_csv">
+  <h3 id="csv_title">＋ Tạo dự án mới</h3>
+  <div class="field" id="csv_name_field">
+    <label>Tên dự án <span style="color:#e5484d">*</span></label>
+    <input type="text" id="csv_proj_name" placeholder="vd: App bán hàng thời trang" />
   </div>
-  <div id="import_result" class="import-result"></div>
-</dialog>
-
-<!-- ================= DIALOG: projects ================= -->
-<dialog id="dlg_projects">
-  <h3>📁 Quản lý dự án</h3>
-  <p class="dlg-sub">Lưu toàn bộ lựa chọn hiện tại (style, màn đã chọn, câu trả lời, màn tuỳ chỉnh) thành một dự án để mở lại sau.</p>
   <div class="field">
-    <label>Lưu dự án hiện tại</label>
-    <div style="display:flex; gap:8px;">
-      <input type="text" id="proj_name" placeholder="Tên dự án..." style="flex:1;" />
-      <button class="btn-primary" id="proj_save">💾 Lưu</button>
-    </div>
+    <label>Feature list (CSV) — tuỳ chọn</label>
+    <p class="dlg-sub" style="margin:2px 0 8px;">Điền vào <a href="#" id="dl_template2">CSV template</a> (3 cột: Tính năng, Màn hình, Ghi chú) rồi upload — hoặc dán nội dung. Bỏ trống nếu muốn tự chọn màn.</p>
+    <input type="file" id="csv_file" accept=".csv,.txt" />
+    <textarea id="csv_text" placeholder="hoặc dán nội dung CSV / danh sách tính năng vào đây...&#10;Tính năng,Màn hình,Ghi chú&#10;Đăng nhập,Login,&quot;Chỉ đăng nhập bằng Google và Apple&quot;&#10;Trang chủ,Dashboard,&quot;Hiện doanh thu, KPI&quot;" style="margin-top:8px;"></textarea>
   </div>
-  <div class="flabel" style="margin:10px 0 4px;">Dự án đã lưu</div>
-  <div id="proj_list" class="proj-list"></div>
+  <button class="btn-ghost btn-sm" id="csv_analyze">🔎 Phân tích</button>
+  <div id="csv_preview" class="csv-preview"></div>
   <div class="dialog-actions">
-    <button class="btn-ghost" id="proj_new">🆕 Bắt đầu dự án mới (xoá lựa chọn hiện tại)</button>
-    <button class="btn-ghost" id="close_projects">Đóng</button>
+    <button class="btn-ghost" id="csv_close">Huỷ</button>
+    <button class="btn-primary" id="csv_apply">Tạo dự án</button>
   </div>
 </dialog>
 
