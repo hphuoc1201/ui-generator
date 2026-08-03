@@ -163,6 +163,15 @@
   .refbox .ref-opts { margin-top: 10px; }
   .refbox .note { font-size: 11px; color: var(--accent); margin-top: 8px; line-height: 1.4; }
   .note-label { font-size: 11px; color: var(--muted); margin-bottom: 3px; display: block; }
+
+  .fields { display: flex; flex-direction: column; gap: 9px; padding: 10px; background: var(--panel-2); border: 1px solid var(--border); border-radius: 8px; }
+  .fgroup { display: flex; flex-direction: column; gap: 5px; }
+  .flabel { font-size: 11px; font-weight: 600; color: var(--muted); }
+  .chips { display: flex; flex-wrap: wrap; gap: 5px; }
+  .chip { font-size: 11px; font-weight: 600; padding: 4px 9px; border-radius: 999px; background: var(--panel); border: 1px solid var(--border); color: var(--muted); cursor: pointer; transition: all .12s; }
+  .chip:hover { border-color: var(--accent); }
+  .chip.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .mini-select, .mini-input { width: 100%; font-size: 12px; padding: 6px 8px; border-radius: 7px; background: var(--panel); border: 1px solid var(--border); color: var(--text); font-family: inherit; }
 </style>
 <script>
   /* Đặt theme sớm để tránh nháy màn hình */

@@ -43,66 +43,359 @@ const OPTIONS = {
 /* ---------- Screen template library ---------- */
 /* Mỗi màn: id, name (vi), group, desc (vi ngắn), base (en, mô tả bố cục) */
 const SCREENS = [
-  // ----- Auth -----
-  { id: "login", group: "Xác thực", name: "Đăng nhập (Login)", desc: "Email/mật khẩu, nút đăng nhập, social login",
-    base: "a Login screen with a logo/app name at top, email and password input fields, a 'forgot password' link, a primary Sign In button, social login buttons (Google, Apple), and a 'sign up' link at the bottom." },
-  { id: "signup", group: "Xác thực", name: "Đăng ký (Sign up)", desc: "Form tạo tài khoản",
-    base: "a Sign Up / registration screen with full name, email, password and confirm-password fields, a terms-of-service checkbox, a primary Create Account button, and a link to log in." },
-  { id: "forgot", group: "Xác thực", name: "Quên mật khẩu", desc: "Nhập email để đặt lại",
-    base: "a Forgot Password screen with an illustration, a short instruction text, a single email input field, and a Send Reset Link button." },
-  { id: "otp", group: "Xác thực", name: "Xác thực OTP", desc: "6 ô nhập mã",
-    base: "an OTP verification screen with a title, a subtitle showing where the code was sent, six single-digit code input boxes, a resend-code countdown, and a Verify button." },
+  // ----- Auth ----- (base trung tính; chi tiết do câu hỏi bên dưới quyết định)
+  { id: "login", group: "Xác thực", name: "Đăng nhập (Login)", desc: "Tuỳ chọn phương thức đăng nhập",
+    base: "a Login screen with the app logo/name at the top and a clear primary sign-in button." },
+  { id: "signup", group: "Xác thực", name: "Đăng ký (Sign up)", desc: "Tuỳ chọn các trường form",
+    base: "a Sign Up / registration screen with a clear primary create-account button." },
+  { id: "forgot", group: "Xác thực", name: "Quên mật khẩu", desc: "Tuỳ chọn kênh đặt lại",
+    base: "a Forgot Password screen with a short instruction and a submit button." },
+  { id: "otp", group: "Xác thực", name: "Xác thực OTP", desc: "Chọn số chữ số & kênh gửi",
+    base: "an OTP verification screen with a title, a subtitle showing where the code was sent, and a Verify button." },
 
   // ----- Onboarding -----
-  { id: "welcome", group: "Onboarding", name: "Welcome / Giới thiệu", desc: "Slide onboarding có minh hoạ",
-    base: "an onboarding welcome screen with a large friendly illustration, a headline, a short descriptive paragraph, page-indicator dots, a Skip button, and a Next / Get Started button." },
+  { id: "welcome", group: "Onboarding", name: "Welcome / Giới thiệu", desc: "Chọn số slide & nút",
+    base: "an onboarding welcome screen with a large friendly illustration, a headline and a short descriptive paragraph." },
   { id: "permission", group: "Onboarding", name: "Xin quyền", desc: "Yêu cầu quyền thông báo/vị trí",
     base: "a permission request screen with an icon, a title explaining why the permission is needed, a short description, an Allow button and a 'Maybe later' text button." },
 
   // ----- Core -----
-  { id: "home", group: "Màn chính", name: "Trang chủ / Dashboard", desc: "Header, search, cards, bottom nav",
-    base: "a Home / dashboard screen with a top greeting header and avatar, a search bar, horizontally scrollable category chips, a grid or list of content cards, and a bottom tab navigation bar." },
-  { id: "feed", group: "Màn chính", name: "Feed / Danh sách", desc: "Danh sách bài viết cuộn dọc",
-    base: "a scrollable feed/list screen with a top bar, a vertical list of content cards each with thumbnail, title, subtitle and metadata, pull-to-refresh, and a bottom navigation bar." },
-  { id: "detail", group: "Màn chính", name: "Màn chi tiết", desc: "Ảnh lớn, tiêu đề, mô tả, CTA",
-    base: "a detail screen with a large hero image at top, a back button, a title, rating/metadata row, a description section, and a fixed primary action button at the bottom." },
-  { id: "search", group: "Màn chính", name: "Tìm kiếm + kết quả", desc: "Search bar, filter, kết quả",
-    base: "a search screen with an active search bar at top, recent-search chips, filter and sort controls, and a list/grid of search results below." },
+  { id: "home", group: "Màn chính", name: "Trang chủ / Dashboard", desc: "Chọn kiểu, các phần & nav",
+    base: "a Home screen for the app." },
+  { id: "feed", group: "Màn chính", name: "Feed / Danh sách", desc: "Chọn loại nội dung & tương tác",
+    base: "a scrollable feed/list screen with a top bar." },
+  { id: "detail", group: "Màn chính", name: "Màn chi tiết", desc: "Chọn thành phần & CTA",
+    base: "a detail screen with a back button at the top." },
+  { id: "search", group: "Màn chính", name: "Tìm kiếm + kết quả", desc: "Chọn bộ lọc & thành phần",
+    base: "a search screen with an active search bar at the top and a list/grid of results below." },
   { id: "empty", group: "Màn chính", name: "Trạng thái rỗng (Empty)", desc: "Chưa có dữ liệu",
     base: "an empty-state screen with a centered illustration, a friendly headline, a short helpful sentence, and a primary call-to-action button to add the first item." },
 
   // ----- User -----
-  { id: "profile", group: "Người dùng", name: "Hồ sơ (Profile)", desc: "Avatar, thông tin, thống kê",
-    base: "a user profile screen with a large avatar, name and username, a stats row (followers, following, posts), an Edit Profile button, and a list of menu options below." },
+  { id: "profile", group: "Người dùng", name: "Hồ sơ (Profile)", desc: "Chọn các mục hiển thị",
+    base: "a user profile screen." },
   { id: "editprofile", group: "Người dùng", name: "Sửa hồ sơ", desc: "Form chỉnh sửa thông tin",
     base: "an edit-profile screen with an editable avatar with a camera icon, labeled input fields for name, bio, email and phone, and a Save button in the top bar." },
-  { id: "settings", group: "Người dùng", name: "Cài đặt (Settings)", desc: "Danh sách nhóm cài đặt, toggle",
-    base: "a settings screen with grouped list sections (Account, Notifications, Privacy, About), each row with an icon, label, and a chevron or a toggle switch." },
-  { id: "notifications", group: "Người dùng", name: "Thông báo", desc: "Danh sách thông báo",
-    base: "a notifications screen with a title, a segmented tab (All / Unread), and a vertical list of notification items each with an icon/avatar, text, and timestamp." },
+  { id: "settings", group: "Người dùng", name: "Cài đặt (Settings)", desc: "Chọn nhóm cài đặt",
+    base: "a settings screen organized into grouped list sections, each row with an icon, label, and a chevron or a toggle switch." },
+  { id: "notifications", group: "Người dùng", name: "Thông báo", desc: "Chọn bộ lọc & loại thông báo",
+    base: "a notifications screen with a title and a vertical list of notification items, each with an icon/avatar, text and timestamp." },
 
   // ----- Commerce -----
-  { id: "productlist", group: "Bán hàng", name: "Danh sách sản phẩm", desc: "Lưới sản phẩm, filter",
-    base: "a product listing screen with a search bar, category filter chips, and a two-column grid of product cards each showing image, name, price, and a small add-to-cart icon." },
-  { id: "productdetail", group: "Bán hàng", name: "Chi tiết sản phẩm", desc: "Ảnh, giá, size, mua",
-    base: "a product detail screen with a large product image carousel, product title, price, rating, color/size selectors, a quantity stepper, a description, and Add to Cart / Buy Now buttons at the bottom." },
-  { id: "cart", group: "Bán hàng", name: "Giỏ hàng", desc: "Danh sách món + tổng tiền",
-    base: "a shopping cart screen with a list of cart items (thumbnail, name, price, quantity stepper, remove), a promo-code field, an order summary with subtotal and total, and a Checkout button." },
-  { id: "checkout", group: "Bán hàng", name: "Thanh toán", desc: "Địa chỉ, phương thức, xác nhận",
-    base: "a checkout screen with a shipping address card, a delivery-method selector, a payment-method section (cards, e-wallet), an order summary, and a Place Order button." },
+  { id: "productlist", group: "Bán hàng", name: "Danh sách sản phẩm", desc: "Chọn bố cục & nội dung thẻ",
+    base: "a product listing screen." },
+  { id: "productdetail", group: "Bán hàng", name: "Chi tiết sản phẩm", desc: "Chọn tuỳ chọn & nút",
+    base: "a product detail screen." },
+  { id: "cart", group: "Bán hàng", name: "Giỏ hàng", desc: "Chọn tính năng",
+    base: "a shopping cart screen with a list of cart items and a Checkout button at the bottom." },
+  { id: "checkout", group: "Bán hàng", name: "Thanh toán", desc: "Chọn các phần & phương thức",
+    base: "a checkout screen with a Place Order button at the bottom." },
   { id: "paysuccess", group: "Bán hàng", name: "Thanh toán thành công", desc: "Xác nhận đơn hàng",
-    base: "an order-success screen with a large green checkmark animation illustration, a 'Payment Successful' headline, order number and summary, and View Order / Continue Shopping buttons." },
+    base: "an order-success screen with a large green checkmark illustration, a 'Payment Successful' headline, order number and summary, and View Order / Continue Shopping buttons." },
 
   // ----- Khác -----
-  { id: "chat", group: "Khác", name: "Chat / Nhắn tin", desc: "Bong bóng chat, ô nhập",
-    base: "a chat conversation screen with a top bar showing the contact avatar and name, alternating incoming and outgoing message bubbles with timestamps, and a bottom input bar with attachment and send buttons." },
-  { id: "chatlist", group: "Khác", name: "Danh sách trò chuyện", desc: "List các cuộc chat",
-    base: "a messaging inbox screen with a search bar and a vertical list of conversations, each row with an avatar, name, last message preview, timestamp, and unread badge." },
-  { id: "map", group: "Khác", name: "Bản đồ", desc: "Map + pin + thẻ địa điểm",
-    base: "a map screen with a full-screen map background, location pins, a floating search bar at top, and a draggable bottom sheet card showing a selected place's details." },
+  { id: "chat", group: "Khác", name: "Chat / Nhắn tin", desc: "Chọn tính năng & header",
+    base: "a chat conversation screen with alternating incoming and outgoing message bubbles with timestamps, and a bottom input bar with attachment and send buttons." },
+  { id: "chatlist", group: "Khác", name: "Danh sách trò chuyện", desc: "Chọn nội dung mỗi dòng",
+    base: "a messaging inbox screen with a vertical list of conversations." },
+  { id: "map", group: "Khác", name: "Bản đồ", desc: "Chọn tính năng bản đồ",
+    base: "a map screen with a full-screen map background." },
   { id: "error404", group: "Khác", name: "Lỗi / 404", desc: "Màn báo lỗi",
     base: "an error / 404 screen with a playful illustration, a headline like 'Something went wrong', a short message, and a Try Again / Go Home button." },
 ];
+
+/* ---------- Hệ thống câu hỏi cho từng màn ---------- */
+/* Mỗi field: {key, label, type: multi|single|select|text, options?, default, compile(value)->string} */
+function optEn(options, v) { const o = options.find(x => x.v === v); return o ? (o.en != null ? o.en : o.label) : v; }
+const F = {
+  // multi: chọn nhiều -> "lead a, b, c."
+  multi: (key, label, lead, options, def) => ({ key, label, type: "multi", options, default: def || [],
+    compile: v => (v && v.length) ? lead + " " + v.map(x => optEn(options, x)).join(", ") + "." : "" }),
+  // single (list): chọn 1 -> "lead en."
+  single: (key, label, lead, options, def) => ({ key, label, type: "single", options, default: def,
+    compile: v => v ? lead + " " + optEn(options, v) + "." : "" }),
+  // clauses (chọn nhiều, mỗi option là 1 câu hoàn chỉnh) -> nối các câu
+  clauses: (key, label, options, def) => ({ key, label, type: "multi", options, default: def || [],
+    compile: v => (v || []).map(x => optEn(options, x)).filter(Boolean).join(" ") }),
+  // choice (chọn 1, option là câu hoàn chỉnh, "" = bỏ qua)
+  choice: (key, label, options, def) => ({ key, label, type: "single", options, default: def,
+    compile: v => optEn(options, v) || "" }),
+  select: (key, label, options, def, tpl) => ({ key, label, type: "select", options, default: def,
+    compile: v => v ? tpl.replace(/\{v\}/g, v) : "" }),
+  text: (key, label, lead, ph) => ({ key, label, type: "text", placeholder: ph || "", default: "",
+    compile: v => (v && ("" + v).trim()) ? lead + " " + ("" + v).trim() + "." : "" }),
+};
+
+const SCREEN_FIELDS = {
+  login: [
+    F.multi("methods", "Phương thức đăng nhập", "Support login via", [
+      { v: "email", label: "Email + mật khẩu", en: "email and password" },
+      { v: "phonepw", label: "SĐT + mật khẩu", en: "phone number and password" },
+      { v: "phoneotp", label: "SĐT + OTP", en: "phone number with OTP" },
+      { v: "google", label: "Google", en: "Google" },
+      { v: "apple", label: "Apple", en: "Apple" },
+      { v: "facebook", label: "Facebook", en: "Facebook" },
+      { v: "sso", label: "SSO công ty", en: "corporate SSO" },
+    ], ["email", "google", "apple"]),
+    F.clauses("extras", "Thành phần thêm", [
+      { v: "remember", label: "Ghi nhớ đăng nhập", en: "Include a 'remember me' checkbox." },
+      { v: "forgot", label: "Quên mật khẩu", en: "Include a 'forgot password' link." },
+      { v: "signup", label: "Link sang đăng ký", en: "Include a link to the sign-up screen." },
+    ], ["remember", "forgot", "signup"]),
+  ],
+  signup: [
+    F.multi("formfields", "Các trường trong form", "Form fields:", [
+      { v: "name", label: "Họ tên", en: "full name" },
+      { v: "email", label: "Email", en: "email" },
+      { v: "phone", label: "Số điện thoại", en: "phone number" },
+      { v: "password", label: "Mật khẩu", en: "password" },
+      { v: "confirm", label: "Xác nhận MK", en: "confirm password" },
+      { v: "dob", label: "Ngày sinh", en: "date of birth" },
+      { v: "gender", label: "Giới tính", en: "gender" },
+      { v: "referral", label: "Mã giới thiệu", en: "referral code" },
+    ], ["name", "email", "password", "confirm"]),
+    F.choice("social", "Đăng ký bằng mạng xã hội?", [
+      { v: "yes", label: "Có", en: "Also offer social sign-up with Google and Apple." },
+      { v: "no", label: "Không", en: "" },
+    ], "yes"),
+    F.choice("terms", "Ô đồng ý điều khoản?", [
+      { v: "yes", label: "Có", en: "Include a terms-of-service agreement checkbox." },
+      { v: "no", label: "Không", en: "" },
+    ], "yes"),
+  ],
+  forgot: [
+    F.single("method", "Đặt lại mật khẩu qua", "Reset the password", [
+      { v: "email", label: "Email", en: "via email" },
+      { v: "sms", label: "SMS", en: "via SMS" },
+      { v: "both", label: "Email hoặc SMS", en: "via email or SMS" },
+    ], "email"),
+  ],
+  otp: [
+    F.select("digits", "Số chữ số OTP", [{ v: "4" }, { v: "5" }, { v: "6" }, { v: "8" }], "6",
+      "Use a {v}-digit OTP code, shown as {v} separate input boxes."),
+    F.single("channel", "Mã gửi qua", "The code is sent", [
+      { v: "sms", label: "SMS", en: "via SMS" },
+      { v: "email", label: "Email", en: "via email" },
+      { v: "app", label: "App xác thực", en: "via an authenticator app" },
+    ], "sms"),
+    F.choice("resend", "Đếm ngược gửi lại?", [
+      { v: "yes", label: "Có", en: "Include a resend-code countdown timer." },
+      { v: "no", label: "Không", en: "" },
+    ], "yes"),
+  ],
+  welcome: [
+    F.select("slides", "Số slide onboarding", [{ v: "3" }, { v: "4" }, { v: "5" }], "3",
+      "Design it as the first slide of a {v}-slide onboarding carousel with page-indicator dots."),
+    F.clauses("buttons", "Nút", [
+      { v: "skip", label: "Skip", en: "Include a Skip button." },
+      { v: "next", label: "Next", en: "Include a Next button." },
+      { v: "get", label: "Get Started", en: "Include a Get Started button." },
+    ], ["skip", "next"]),
+  ],
+  home: [
+    F.single("kind", "Kiểu trang chủ", "Design it as", [
+      { v: "dashboard", label: "Dashboard (widget)", en: "a data dashboard with summary widgets" },
+      { v: "feed", label: "Feed nội dung", en: "a content home with a scrollable feed" },
+      { v: "shop", label: "Cửa hàng", en: "a shopping home with categories and products" },
+      { v: "launcher", label: "Tổng quan/menu", en: "an app overview / launcher home" },
+    ], "dashboard"),
+    F.multi("sections", "Các phần cần có", "Include these sections:", [
+      { v: "search", label: "Thanh tìm kiếm", en: "a search bar" },
+      { v: "kpi", label: "Thống kê/KPI", en: "KPI stat cards" },
+      { v: "chart", label: "Biểu đồ", en: "charts" },
+      { v: "recent", label: "Hoạt động gần đây", en: "a recent-activity list" },
+      { v: "quick", label: "Thao tác nhanh", en: "quick-action buttons" },
+      { v: "banner", label: "Banner khuyến mãi", en: "a promo banner" },
+      { v: "categories", label: "Danh mục", en: "category shortcuts" },
+      { v: "featured", label: "Nổi bật", en: "a featured/highlights section" },
+    ], ["kpi", "chart", "recent", "quick"]),
+    F.single("nav", "Điều hướng", "Navigation:", [
+      { v: "bottom", label: "Tab dưới", en: "a bottom tab bar" },
+      { v: "sidebar", label: "Sidebar", en: "a side drawer" },
+      { v: "top", label: "Tab trên", en: "top tabs" },
+      { v: "none", label: "Không", en: "no persistent navigation" },
+    ], "bottom"),
+  ],
+  feed: [
+    F.single("item", "Loại nội dung", "A feed of", [
+      { v: "social", label: "Bài mạng xã hội", en: "social posts" },
+      { v: "news", label: "Tin tức", en: "news articles" },
+      { v: "video", label: "Video", en: "videos" },
+      { v: "product", label: "Sản phẩm", en: "products" },
+    ], "social"),
+    F.clauses("actions", "Tương tác", [
+      { v: "like", label: "Like", en: "Each item has a like action." },
+      { v: "comment", label: "Comment", en: "Each item has a comment action." },
+      { v: "share", label: "Share", en: "Each item has a share action." },
+      { v: "save", label: "Save", en: "Each item has a save/bookmark action." },
+      { v: "story", label: "Story trên cùng", en: "Show a stories bar at the top." },
+    ], ["like", "comment", "share"]),
+  ],
+  detail: [
+    F.multi("sections", "Thành phần", "Include:", [
+      { v: "gallery", label: "Ảnh lớn/gallery", en: "a large image or gallery" },
+      { v: "title", label: "Tiêu đề", en: "a title" },
+      { v: "rating", label: "Đánh giá sao", en: "a star rating" },
+      { v: "desc", label: "Mô tả", en: "a description" },
+      { v: "specs", label: "Thông số", en: "a specs/attributes section" },
+      { v: "related", label: "Liên quan", en: "a related-items section" },
+      { v: "comments", label: "Bình luận", en: "a comments/reviews section" },
+    ], ["gallery", "title", "rating", "desc"]),
+    F.text("cta", "Nút hành động chính", "Primary action button labeled:", "vd: Đặt ngay, Thêm giỏ, Liên hệ..."),
+  ],
+  search: [
+    F.multi("filters", "Bộ lọc", "Provide filters for", [
+      { v: "price", label: "Giá", en: "price" },
+      { v: "category", label: "Danh mục", en: "category" },
+      { v: "rating", label: "Đánh giá", en: "rating" },
+      { v: "distance", label: "Khoảng cách", en: "distance" },
+      { v: "sort", label: "Sắp xếp", en: "sorting" },
+    ], ["category", "price", "sort"]),
+    F.clauses("extras", "Thành phần thêm", [
+      { v: "recent", label: "Tìm gần đây", en: "Show recent searches." },
+      { v: "suggest", label: "Gợi ý", en: "Show search suggestions." },
+      { v: "voice", label: "Giọng nói", en: "Include a voice-search button." },
+    ], ["recent", "suggest"]),
+  ],
+  profile: [
+    F.multi("sections", "Hiển thị", "Include:", [
+      { v: "avatar", label: "Avatar + tên", en: "a large avatar and name" },
+      { v: "stats", label: "Thống kê", en: "a stats row" },
+      { v: "edit", label: "Nút sửa hồ sơ", en: "an edit-profile button" },
+      { v: "menu", label: "Menu chức năng", en: "a list of menu options" },
+      { v: "orders", label: "Đơn hàng", en: "an orders shortcut" },
+      { v: "wallet", label: "Ví/điểm", en: "a wallet/points section" },
+      { v: "badges", label: "Huy hiệu", en: "achievement badges" },
+    ], ["avatar", "stats", "edit", "menu"]),
+  ],
+  settings: [
+    F.multi("groups", "Nhóm cài đặt", "Include setting groups:", [
+      { v: "account", label: "Tài khoản", en: "Account" },
+      { v: "notif", label: "Thông báo", en: "Notifications" },
+      { v: "privacy", label: "Quyền riêng tư", en: "Privacy" },
+      { v: "appearance", label: "Giao diện", en: "Appearance (light/dark)" },
+      { v: "language", label: "Ngôn ngữ", en: "Language" },
+      { v: "security", label: "Bảo mật", en: "Security" },
+      { v: "help", label: "Trợ giúp", en: "Help & Support" },
+      { v: "logout", label: "Đăng xuất", en: "Log out" },
+    ], ["account", "notif", "privacy", "appearance", "logout"]),
+  ],
+  notifications: [
+    F.clauses("layout", "Bố cục", [
+      { v: "tabs", label: "Tab Tất cả/Chưa đọc", en: "Show an All / Unread segmented tab." },
+      { v: "group", label: "Nhóm theo ngày", en: "Group notifications by day." },
+    ], ["tabs"]),
+    F.multi("types", "Loại thông báo", "Notification types:", [
+      { v: "order", label: "Đơn hàng", en: "order updates" },
+      { v: "promo", label: "Khuyến mãi", en: "promotions" },
+      { v: "system", label: "Hệ thống", en: "system alerts" },
+      { v: "social", label: "Tương tác", en: "social interactions" },
+    ], ["order", "promo", "system"]),
+  ],
+  productlist: [
+    F.single("layout", "Bố cục", "Layout:", [
+      { v: "grid2", label: "Lưới 2 cột", en: "a two-column product grid" },
+      { v: "list", label: "Danh sách", en: "a single-column list" },
+      { v: "grid1", label: "Lưới 1 cột lớn", en: "a large single-column grid" },
+    ], "grid2"),
+    F.multi("card", "Trên mỗi thẻ SP", "Each product card shows", [
+      { v: "image", label: "Ảnh", en: "image" },
+      { v: "name", label: "Tên", en: "name" },
+      { v: "price", label: "Giá", en: "price" },
+      { v: "discount", label: "Giảm giá", en: "a discount badge" },
+      { v: "rating", label: "Đánh giá", en: "rating" },
+      { v: "fav", label: "Yêu thích", en: "a favorite icon" },
+      { v: "add", label: "Thêm giỏ", en: "an add-to-cart button" },
+    ], ["image", "name", "price", "rating", "add"]),
+    F.clauses("top", "Trên cùng", [
+      { v: "chips", label: "Chips danh mục", en: "Show category filter chips at the top." },
+      { v: "sort", label: "Sắp xếp", en: "Show a sort control." },
+      { v: "search", label: "Tìm kiếm", en: "Show a search bar." },
+    ], ["chips", "search"]),
+  ],
+  productdetail: [
+    F.multi("options", "Tuỳ chọn / nội dung", "Include:", [
+      { v: "gallery", label: "Ảnh gallery", en: "an image gallery" },
+      { v: "size", label: "Chọn size", en: "a size selector" },
+      { v: "color", label: "Chọn màu", en: "a color selector" },
+      { v: "qty", label: "Số lượng", en: "a quantity stepper" },
+      { v: "rating", label: "Đánh giá", en: "ratings and reviews" },
+      { v: "desc", label: "Mô tả", en: "a description" },
+      { v: "specs", label: "Thông số", en: "specifications" },
+      { v: "related", label: "Mua kèm", en: "related products" },
+    ], ["gallery", "size", "color", "qty", "desc"]),
+    F.multi("cta", "Nút hành động", "Action buttons:", [
+      { v: "cart", label: "Thêm giỏ", en: "Add to Cart" },
+      { v: "buy", label: "Mua ngay", en: "Buy Now" },
+      { v: "fav", label: "Yêu thích", en: "Favorite" },
+    ], ["cart", "buy"]),
+  ],
+  cart: [
+    F.multi("features", "Tính năng", "Include:", [
+      { v: "qty", label: "Sửa số lượng", en: "quantity steppers" },
+      { v: "remove", label: "Xoá món", en: "remove buttons" },
+      { v: "select", label: "Chọn từng món", en: "per-item checkboxes" },
+      { v: "promo", label: "Mã giảm giá", en: "a promo-code field" },
+      { v: "ship", label: "Ước tính ship", en: "a shipping estimate" },
+      { v: "upsell", label: "Mua kèm", en: "a 'you may also like' section" },
+      { v: "summary", label: "Tổng tiền", en: "an order summary with total" },
+    ], ["qty", "remove", "promo", "summary"]),
+  ],
+  checkout: [
+    F.multi("steps", "Các phần", "Include:", [
+      { v: "address", label: "Địa chỉ", en: "a shipping address" },
+      { v: "shipping", label: "Vận chuyển", en: "a delivery-method selector" },
+      { v: "payment", label: "Thanh toán", en: "a payment-method section" },
+      { v: "review", label: "Xem lại đơn", en: "an order review/summary" },
+    ], ["address", "shipping", "payment", "review"]),
+    F.multi("pay", "Phương thức thanh toán", "Payment methods:", [
+      { v: "card", label: "Thẻ", en: "credit/debit card" },
+      { v: "wallet", label: "Ví điện tử", en: "e-wallet" },
+      { v: "cod", label: "COD", en: "cash on delivery" },
+      { v: "bank", label: "Chuyển khoản", en: "bank transfer" },
+      { v: "installment", label: "Trả góp", en: "installment" },
+    ], ["card", "wallet", "cod"]),
+  ],
+  chat: [
+    F.multi("features", "Tính năng", "Support:", [
+      { v: "image", label: "Gửi ảnh", en: "image messages" },
+      { v: "voice", label: "Voice", en: "voice messages" },
+      { v: "emoji", label: "Emoji", en: "emoji reactions" },
+      { v: "seen", label: "Đã xem", en: "read receipts" },
+      { v: "typing", label: "Đang nhập", en: "a typing indicator" },
+      { v: "reply", label: "Trả lời", en: "reply-to-message" },
+    ], ["image", "seen", "typing"]),
+    F.clauses("header", "Trên đầu", [
+      { v: "avatar", label: "Avatar + tên", en: "Show the contact avatar and name in the top bar." },
+      { v: "online", label: "Trạng thái online", en: "Show an online status." },
+      { v: "call", label: "Nút gọi/video", en: "Show call and video-call buttons." },
+    ], ["avatar", "online", "call"]),
+  ],
+  chatlist: [
+    F.multi("row", "Mỗi dòng chat", "Each row shows", [
+      { v: "avatar", label: "Avatar", en: "an avatar" },
+      { v: "name", label: "Tên", en: "a name" },
+      { v: "last", label: "Tin cuối", en: "the last message" },
+      { v: "time", label: "Thời gian", en: "a timestamp" },
+      { v: "badge", label: "Badge chưa đọc", en: "an unread badge" },
+      { v: "online", label: "Chấm online", en: "an online dot" },
+    ], ["avatar", "name", "last", "time", "badge"]),
+    F.clauses("extras", "Thành phần thêm", [
+      { v: "search", label: "Tìm kiếm", en: "Show a search bar." },
+      { v: "stories", label: "Story trên cùng", en: "Show a stories/active-users row on top." },
+    ], ["search"]),
+  ],
+  map: [
+    F.clauses("features", "Tính năng", [
+      { v: "pins", label: "Pin địa điểm", en: "Show location pins on the map." },
+      { v: "search", label: "Thanh tìm kiếm", en: "Show a floating search bar on top." },
+      { v: "sheet", label: "Thẻ chi tiết", en: "Show a bottom-sheet card with place details." },
+      { v: "directions", label: "Chỉ đường", en: "Include a directions button." },
+      { v: "filter", label: "Lọc", en: "Include category filters." },
+      { v: "myloc", label: "Vị trí của tôi", en: "Include a 'my location' button." },
+    ], ["pins", "search", "sheet"]),
+  ],
+};
 
 /* ---------- Gợi ý nội dung riêng cho từng màn (placeholder ô ghi chú) ---------- */
 const HINTS = {
@@ -136,9 +429,31 @@ let state = {
   style: Object.assign({}, DEFAULT_STYLE),
   selected: {},   // id -> true
   notes: {},      // id -> string
+  fields: {},     // screenId -> { fieldKey: value }
   custom: [],     // {id, name, base, group:"Tuỳ chỉnh"}
   outMode: "multi", // "multi" = mỗi màn 1 ảnh | "composite" = gộp 1 ảnh
 };
+
+/* Lấy/đặt giá trị câu trả lời cho 1 field của 1 màn */
+function fieldVal(screen, f) {
+  const s = state.fields[screen.id];
+  return (s && (f.key in s)) ? s[f.key] : f.default;
+}
+function setFieldVal(screen, f, val) {
+  if (!state.fields[screen.id]) state.fields[screen.id] = {};
+  state.fields[screen.id][f.key] = val; save();
+}
+/* Ghép tất cả câu trả lời của 1 màn thành chuỗi mô tả */
+function compileFields(screen) {
+  const defs = SCREEN_FIELDS[screen.id];
+  if (!defs) return "";
+  return defs.map(f => f.compile(fieldVal(screen, f))).filter(Boolean).join(" ");
+}
+/* Nội dung màn = base + câu trả lời (dùng cho cả 2 chế độ xuất) */
+function screenContent(screen) {
+  const fc = compileFields(screen);
+  return screen.base + (fc ? " " + fc : "");
+}
 
 /* Tỉ lệ rút gọn của từng màn (dùng cho chế độ gộp) */
 const ASPECT_SHORT = {
@@ -214,7 +529,7 @@ function refSuffix() {
 
 function buildPrompt(screen) {
   const note = (state.notes[screen.id] || "").trim();
-  let p = "Create an image: " + stylePreamble() + " " + screen.base + appCtx();
+  let p = "Create an image: " + stylePreamble() + " " + screenContent(screen) + appCtx();
   p += " " + (state.style.refMode ? refSuffix() : styleSuffix());
   if (note) p += " Additional requirements: " + note + ".";
   return p.replace(/\s+/g, " ").trim();
@@ -257,7 +572,7 @@ function buildComposite(screens) {
   lines.push("The " + n + " screens, in order:");
   screens.forEach((sc, i) => {
     const note = (state.notes[sc.id] || "").trim();
-    lines.push((i + 1) + ") " + sc.name + " — " + sc.base + (note ? " " + note + "." : ""));
+    lines.push((i + 1) + ") " + sc.name + " — " + screenContent(sc) + (note ? " " + note + "." : ""));
   });
   return lines.join("\n");
 }
@@ -386,14 +701,77 @@ function renderLibrary() {
     root.querySelector(".copy-one").addEventListener("click", e => {
       copyText(buildPrompt(s), e.target);
     });
+    wireFields(root, s);
   });
   updateCount();
+}
+
+/* HTML các câu hỏi (chips / dropdown / ô nhập) cho 1 màn */
+function renderFieldsHTML(screen) {
+  const defs = SCREEN_FIELDS[screen.id];
+  if (!defs) return "";
+  const groups = defs.map(f => {
+    const val = fieldVal(screen, f);
+    let inner = "";
+    if (f.type === "multi" || f.type === "single") {
+      inner = `<div class="chips" data-key="${f.key}" data-multi="${f.type === "multi"}">` +
+        f.options.map(o => {
+          const active = f.type === "multi" ? (val || []).includes(o.v) : val === o.v;
+          return `<button type="button" class="chip${active ? " active" : ""}" data-v="${escapeHtml(o.v)}">${escapeHtml(o.label || o.v)}</button>`;
+        }).join("") + `</div>`;
+    } else if (f.type === "select") {
+      inner = `<select class="mini-select" data-key="${f.key}">` +
+        f.options.map(o => `<option value="${escapeHtml(o.v)}"${val === o.v ? " selected" : ""}>${escapeHtml(o.label || o.v)}</option>`).join("") + `</select>`;
+    } else if (f.type === "text") {
+      inner = `<input type="text" class="mini-input" data-key="${f.key}" value="${escapeHtml(val || "")}" placeholder="${escapeHtml(f.placeholder || "")}" />`;
+    }
+    return `<div class="fgroup"><div class="flabel">${escapeHtml(f.label)}</div>${inner}</div>`;
+  }).join("");
+  return `<div class="fields">${groups}</div>`;
+}
+
+/* Gắn sự kiện cho các câu hỏi trong 1 thẻ */
+function wireFields(root, screen) {
+  const defs = SCREEN_FIELDS[screen.id];
+  if (!defs) return;
+  const refresh = () => { root.querySelector(".preview").textContent = buildPrompt(screen); };
+  root.querySelectorAll(".chips").forEach(group => {
+    const f = defs.find(d => d.key === group.getAttribute("data-key"));
+    const multi = group.getAttribute("data-multi") === "true";
+    group.querySelectorAll(".chip").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const v = btn.getAttribute("data-v");
+        if (multi) {
+          let cur = (fieldVal(screen, f) || []).slice();
+          if (cur.includes(v)) cur = cur.filter(x => x !== v); else cur.push(v);
+          setFieldVal(screen, f, cur);
+          btn.classList.toggle("active");
+        } else {
+          setFieldVal(screen, f, v);
+          group.querySelectorAll(".chip").forEach(b => b.classList.remove("active"));
+          btn.classList.add("active");
+        }
+        refresh();
+      });
+    });
+  });
+  root.querySelectorAll(".mini-select").forEach(sel => {
+    const f = defs.find(d => d.key === sel.getAttribute("data-key"));
+    sel.addEventListener("change", () => { setFieldVal(screen, f, sel.value); refresh(); });
+  });
+  root.querySelectorAll(".mini-input").forEach(inp => {
+    const f = defs.find(d => d.key === inp.getAttribute("data-key"));
+    inp.addEventListener("input", () => { setFieldVal(screen, f, inp.value); refresh(); });
+  });
 }
 
 function cardHTML(s) {
   const checked = state.selected[s.id] ? "checked" : "";
   const selCls = state.selected[s.id] ? "selected" : "";
   const note = state.notes[s.id] || "";
+  const hasFields = !!SCREEN_FIELDS[s.id];
+  const noteLabel = hasFields ? "✏️ Yêu cầu thêm (ngoài các lựa chọn trên)" : "✏️ Nội dung riêng cho màn này (tuỳ chọn)";
+  const notePh = hasFields ? "vd: điều gì đó chưa có trong các lựa chọn trên..." : (HINTS[s.id] || HINT_DEFAULT);
   return `<div class="card ${selCls}" id="card-${s.id}">
     <div class="card-head">
       <input type="checkbox" class="chk" ${checked} />
@@ -402,9 +780,10 @@ function cardHTML(s) {
         <div class="card-desc">${escapeHtml(s.desc || "")}</div>
       </div>
     </div>
+    ${renderFieldsHTML(s)}
     <div class="preview">${escapeHtml(buildPrompt(s))}</div>
-    <span class="note-label">✏️ Nội dung riêng cho màn này (tuỳ chọn)</span>
-    <textarea class="note" placeholder="${escapeHtml(HINTS[s.id] || HINT_DEFAULT)}">${escapeHtml(note)}</textarea>
+    <span class="note-label">${noteLabel}</span>
+    <textarea class="note" placeholder="${escapeHtml(notePh)}">${escapeHtml(note)}</textarea>
     <div class="card-actions">
       <button class="btn-primary btn-sm copy-one">📋 Copy prompt</button>
     </div>

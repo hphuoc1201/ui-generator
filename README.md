@@ -41,11 +41,17 @@ bóng, spacing... của ảnh mẫu, và chỉ tạo **nội dung mới** cho m�
 
 ## Tuỳ chỉnh cho từng màn
 
+- **Câu hỏi trên từng màn**: mỗi màn có sẵn các lựa chọn để bạn kiểm soát nội
+  dung — không còn mặc định chung chung. Ví dụ:
+  - **Login:** chọn *phương thức đăng nhập* (Email, SĐT, Google, Apple, SSO...),
+    có/không *quên mật khẩu*, *ghi nhớ đăng nhập*...
+  - **OTP:** chọn *số chữ số* (4/5/6/8) và *kênh gửi* (SMS/Email/App).
+  - **Dashboard, Giỏ hàng, Thanh toán, Chat...**: chọn đúng các thành phần app
+    của bạn cần. Prompt tự cập nhật theo lựa chọn (xem trước ngay trên thẻ).
 - **Mô tả app**: điền một lần, áp dụng cho mọi màn (vd "app quản lý chi tiêu,
   phong cách trẻ trung") để các màn cụ thể và ăn khớp nhau.
-- **Nội dung riêng cho màn này**: mỗi thẻ màn hình có ô ghi chú riêng, kèm gợi ý
-  đúng ngữ cảnh (vd Dashboard gợi ý: "các widget: doanh thu, biểu đồ, KPI...").
-  Vì mỗi app một khác, đây là chỗ bạn mô tả thành phần/nội dung cụ thể mình muốn.
+- **Yêu cầu thêm**: mỗi màn vẫn có ô nhập tự do cho những gì chưa có trong các
+  lựa chọn sẵn.
 
 ## 2 kiểu xuất (chọn ở thanh dưới)
 
