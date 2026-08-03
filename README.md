@@ -26,6 +26,27 @@ tiếp theo. Tool này giúp bạn:
 > 💡 Mẹo: Muốn thêm màn không có trong thư viện? Bấm **＋ Thêm màn tuỳ chỉnh**,
 > nhập mô tả bố cục — style chung vẫn được áp dụng tự động.
 
+## Kiểm soát style bằng ảnh mẫu (quan trọng)
+
+Nếu bạn đã có sẵn ảnh style mình thích và muốn design bám **đúng** theo đó:
+
+1. Bật **🎯 Dùng ảnh mẫu để kiểm soát style** ở panel bên trái.
+2. Chọn mức độ bám: *chỉ theo phong cách* (màu/font/bo góc, bố cục tự do) hoặc
+   *theo cả phong cách + bố cục tương tự*.
+3. Copy prompt và dán vào ChatGPT — **nhớ đính kèm ảnh mẫu** vào chính tin nhắn
+   đó (mỗi tab một ảnh khi chạy song song).
+
+Prompt sẽ yêu cầu ChatGPT tái tạo **chính xác** bảng màu, typography, bo góc, đổ
+bóng, spacing... của ảnh mẫu, và chỉ tạo **nội dung mới** cho màn hình bạn cần.
+
+## Tuỳ chỉnh cho từng màn
+
+- **Mô tả app**: điền một lần, áp dụng cho mọi màn (vd "app quản lý chi tiêu,
+  phong cách trẻ trung") để các màn cụ thể và ăn khớp nhau.
+- **Nội dung riêng cho màn này**: mỗi thẻ màn hình có ô ghi chú riêng, kèm gợi ý
+  đúng ngữ cảnh (vd Dashboard gợi ý: "các widget: doanh thu, biểu đồ, KPI...").
+  Vì mỗi app một khác, đây là chỗ bạn mô tả thành phần/nội dung cụ thể mình muốn.
+
 ## Tính năng
 
 - Thư viện template cho ~25 loại màn hình phổ biến, chia theo nhóm + tìm kiếm.

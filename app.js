@@ -104,10 +104,36 @@ const SCREENS = [
     base: "an error / 404 screen with a playful illustration, a headline like 'Something went wrong', a short message, and a Try Again / Go Home button." },
 ];
 
+/* ---------- Gợi ý nội dung riêng cho từng màn (placeholder ô ghi chú) ---------- */
+const HINTS = {
+  login: "vd: thêm đăng nhập bằng số điện thoại, nút 'ghi nhớ đăng nhập'...",
+  signup: "vd: thêm trường ngày sinh, mã giới thiệu, chọn vai trò...",
+  home: "vd: các widget/thẻ cần có: doanh thu, biểu đồ, KPI, đơn gần đây, thao tác nhanh...",
+  feed: "vd: mỗi bài có like/comment/share, thanh story trên cùng, quảng cáo xen kẽ...",
+  detail: "vd: thông tin cần hiển thị, tab đánh giá, sản phẩm liên quan, nút hành động...",
+  search: "vd: bộ lọc theo giá/danh mục/đánh giá, gợi ý tìm kiếm, lịch sử...",
+  profile: "vd: các mục: đơn hàng, ví, yêu thích, huy hiệu, mời bạn bè...",
+  settings: "vd: nhóm cài đặt cần có, đổi ngôn ngữ, chủ đề sáng/tối, bảo mật 2 lớp...",
+  notifications: "vd: nhóm theo ngày, loại thông báo (đơn hàng, khuyến mãi, hệ thống)...",
+  productlist: "vd: kiểu thẻ sản phẩm, nhãn giảm giá, nút yêu thích, sắp xếp...",
+  productdetail: "vd: chọn size/màu, đánh giá sao, ảnh 360, thông số kỹ thuật...",
+  cart: "vd: mã giảm giá, chọn từng món, ước tính phí ship, gợi ý mua kèm...",
+  checkout: "vd: các bước thanh toán, phương thức (thẻ, ví, COD), điểm tích luỹ...",
+  chat: "vd: gửi ảnh/voice, trạng thái đã xem, biểu tượng cảm xúc, ghim tin nhắn...",
+  chatlist: "vd: nhóm chat, trạng thái online, tin nhắn nháp, lọc chưa đọc...",
+  map: "vd: các loại pin, lọc theo khoảng cách, chỉ đường, đánh giá địa điểm...",
+};
+const HINT_DEFAULT = "vd: các thành phần / nội dung cụ thể bạn muốn có trên màn này...";
+
 /* ---------- State ---------- */
 const LS_KEY = "ui-prompt-studio-v1";
+const DEFAULT_STYLE = {
+  platform: "ios", design: "minimal", mode: "light", fidelity: "high",
+  aspect: "phone", textlang: "vi", color: "#2F80ED", extra: "",
+  appContext: "", refMode: false, refFollow: "style",
+};
 let state = {
-  style: { platform: "ios", design: "minimal", mode: "light", fidelity: "high", aspect: "phone", textlang: "vi", color: "#2F80ED", extra: "" },
+  style: Object.assign({}, DEFAULT_STYLE),
   selected: {},   // id -> true
   notes: {},      // id -> string
   custom: [],     // {id, name, base, group:"Tuỳ chỉnh"}
@@ -119,7 +145,7 @@ function load() {
     if (raw) {
       const saved = JSON.parse(raw);
       state = Object.assign(state, saved);
-      state.style = Object.assign({ platform: "ios", design: "minimal", mode: "light", fidelity: "high", aspect: "phone", textlang: "vi", color: "#2F80ED", extra: "" }, saved.style || {});
+      state.style = Object.assign({}, DEFAULT_STYLE, saved.style || {});
     }
   } catch (e) { /* ignore corrupted storage */ }
 }
@@ -140,6 +166,12 @@ function stylePreamble() {
   return parts.join(" ");
 }
 
+function appCtx() {
+  const c = (state.style.appContext || "").trim();
+  return c ? " Product context: " + c + "." : "";
+}
+
+/* Suffix khi KHÔNG dùng ảnh mẫu — mô tả style bằng chữ */
 function styleSuffix() {
   const s = state.style;
   const bits = [
@@ -153,10 +185,28 @@ function styleSuffix() {
   return bits.join(" ");
 }
 
+/* Suffix khi DÙNG ảnh mẫu — bắt model bám theo style của ảnh đính kèm */
+function refSuffix() {
+  const s = state.style;
+  const follow = s.refFollow === "layout"
+    ? "Also follow a layout and composition similar to the reference image."
+    : "Use a layout appropriate for this screen — only the visual style must match the reference.";
+  const bits = [
+    "STYLE REFERENCE: I am attaching a reference image. Replicate its exact visual style — color palette, typography and font weights, iconography, corner radius, shadows, borders, spacing, and overall design language — so the result looks like it belongs to the same product.",
+    follow,
+    "Do NOT copy the reference's own text or screen content; create new, realistic content appropriate for this screen.",
+    opt("aspect", s.aspect) + ".",
+    opt("textlang", s.textlang) + ".",
+  ];
+  if (s.extra && s.extra.trim()) bits.push(s.extra.trim() + ".");
+  bits.push("Render as a polished single-screen mockup. IMPORTANT: attach the style reference image to this message.");
+  return bits.join(" ");
+}
+
 function buildPrompt(screen) {
   const note = (state.notes[screen.id] || "").trim();
-  let p = stylePreamble() + " " + screen.base;
-  p += " " + styleSuffix();
+  let p = stylePreamble() + " " + screen.base + appCtx();
+  p += " " + (state.style.refMode ? refSuffix() : styleSuffix());
   if (note) p += " Additional requirements: " + note + ".";
   return p.replace(/\s+/g, " ").trim();
 }
@@ -172,14 +222,8 @@ function fillSelect(id, kind) {
   el.innerHTML = OPTIONS[kind].map(o => `<option value="${o.v}">${o.label}</option>`).join("");
 }
 
-function initStylePanel() {
-  fillSelect("s_platform", "platform");
-  fillSelect("s_design", "design");
-  fillSelect("s_mode", "mode");
-  fillSelect("s_fidelity", "fidelity");
-  fillSelect("s_aspect", "aspect");
-  fillSelect("s_textlang", "textlang");
-
+/* Đồng bộ giá trị từ state -> các ô nhập (không gắn listener) */
+function syncStyleInputs() {
   const s = state.style;
   $("#s_platform").value = s.platform;
   $("#s_design").value = s.design;
@@ -190,6 +234,31 @@ function initStylePanel() {
   $("#s_color").value = s.color;
   $("#s_color_hex").value = s.color;
   $("#s_extra").value = s.extra;
+  $("#s_appctx").value = s.appContext;
+  $("#s_refmode").checked = !!s.refMode;
+  $("#s_reffollow").value = s.refFollow;
+}
+
+/* Bật/tắt hiển thị các trường tuỳ theo chế độ ảnh mẫu */
+function updateRefUI() {
+  const on = !!state.style.refMode;
+  $("#ref_opts").style.display = on ? "block" : "none";
+  // Khi bám theo ảnh mẫu: ẩn các trường style-bằng-chữ để tránh xung đột
+  ["field-design", "field-mode", "field-color"].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = on ? "none" : "";
+  });
+}
+
+function initStylePanel() {
+  fillSelect("s_platform", "platform");
+  fillSelect("s_design", "design");
+  fillSelect("s_mode", "mode");
+  fillSelect("s_fidelity", "fidelity");
+  fillSelect("s_aspect", "aspect");
+  fillSelect("s_textlang", "textlang");
+
+  syncStyleInputs();
 
   const bind = (id, key) => document.getElementById(id).addEventListener("change", e => {
     state.style[key] = e.target.value; save(); renderLibrary();
@@ -200,6 +269,12 @@ function initStylePanel() {
   bind("s_fidelity", "fidelity");
   bind("s_aspect", "aspect");
   bind("s_textlang", "textlang");
+  bind("s_reffollow", "refFollow");
+
+  $("#s_appctx").addEventListener("input", e => { state.style.appContext = e.target.value; save(); renderLibrary(); });
+  $("#s_refmode").addEventListener("change", e => {
+    state.style.refMode = e.target.checked; save(); updateRefUI(); renderLibrary();
+  });
 
   $("#s_color").addEventListener("input", e => {
     state.style.color = e.target.value; $("#s_color_hex").value = e.target.value; save(); renderLibrary();
@@ -215,9 +290,11 @@ function initStylePanel() {
   $("#s_extra").addEventListener("input", e => { state.style.extra = e.target.value; save(); renderLibrary(); });
 
   $("#reset_style").addEventListener("click", () => {
-    state.style = { platform: "ios", design: "minimal", mode: "light", fidelity: "high", aspect: "phone", textlang: "vi", color: "#2F80ED", extra: "" };
-    save(); initStylePanel(); renderLibrary();
+    state.style = Object.assign({}, DEFAULT_STYLE);
+    save(); syncStyleInputs(); updateRefUI(); renderLibrary();
   });
+
+  updateRefUI();
 }
 
 function renderLibrary() {
@@ -275,7 +352,8 @@ function cardHTML(s) {
       </div>
     </div>
     <div class="preview">${escapeHtml(buildPrompt(s))}</div>
-    <textarea class="note" placeholder="Ghi chú riêng cho màn này (tuỳ chọn)...">${escapeHtml(note)}</textarea>
+    <span class="note-label">✏️ Nội dung riêng cho màn này (tuỳ chọn)</span>
+    <textarea class="note" placeholder="${escapeHtml(HINTS[s.id] || HINT_DEFAULT)}">${escapeHtml(note)}</textarea>
     <div class="card-actions">
       <button class="btn-primary btn-sm copy-one">📋 Copy prompt</button>
     </div>
