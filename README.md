@@ -47,6 +47,24 @@ bóng, spacing... của ảnh mẫu, và chỉ tạo **nội dung mới** cho m�
   đúng ngữ cảnh (vd Dashboard gợi ý: "các widget: doanh thu, biểu đồ, KPI...").
   Vì mỗi app một khác, đây là chỗ bạn mô tả thành phần/nội dung cụ thể mình muốn.
 
+## 2 kiểu xuất (chọn ở thanh dưới)
+
+Vì ChatGPT chỉ tạo **1 ảnh mỗi prompt**, tool hỗ trợ 2 cách khi chọn nhiều màn:
+
+- **Mỗi màn 1 ảnh (nhiều prompt):** mỗi màn ra 1 prompt riêng (đánh số). Mở nhiều
+  tab ChatGPT, mỗi tab dán 1 prompt → chạy song song, mỗi màn 1 ảnh riêng.
+- **Gộp tất cả vào 1 ảnh:** tạo **1 prompt duy nhất** yêu cầu vẽ tất cả các màn
+  trong **cùng một ảnh** — có ghi rõ *tỉ lệ ảnh tổng (~16:9)*, *tỉ lệ từng màn*
+  (vd 9:19.5), style dùng chung, và nội dung từng màn được đánh số.
+
+Mọi prompt đều bắt đầu bằng câu lệnh **“Create an image: ...”** để ChatGPT hiểu
+rõ là cần **sinh ảnh** (không phải trả lời bằng chữ).
+
+## Giao diện sáng/tối
+
+Có nút **☀️ Sáng / 🌙 Tối** ở góc trên phải. Mặc định theo cài đặt hệ thống của
+bạn, và ghi nhớ lựa chọn cho lần sau.
+
 ## Tính năng
 
 - Thư viện template cho ~25 loại màn hình phổ biến, chia theo nhóm + tìm kiếm.

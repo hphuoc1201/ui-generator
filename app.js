@@ -137,6 +137,15 @@ let state = {
   selected: {},   // id -> true
   notes: {},      // id -> string
   custom: [],     // {id, name, base, group:"Tuỳ chỉnh"}
+  outMode: "multi", // "multi" = mỗi màn 1 ảnh | "composite" = gộp 1 ảnh
+};
+
+/* Tỉ lệ rút gọn của từng màn (dùng cho chế độ gộp) */
+const ASPECT_SHORT = {
+  phone: "9:19.5 portrait",
+  "phone-frame": "9:19.5 portrait (inside a phone frame)",
+  tablet: "4:3 landscape",
+  desktop: "16:9 landscape",
 };
 
 function load() {
@@ -205,10 +214,52 @@ function refSuffix() {
 
 function buildPrompt(screen) {
   const note = (state.notes[screen.id] || "").trim();
-  let p = stylePreamble() + " " + screen.base + appCtx();
+  let p = "Create an image: " + stylePreamble() + " " + screen.base + appCtx();
   p += " " + (state.style.refMode ? refSuffix() : styleSuffix());
   if (note) p += " Additional requirements: " + note + ".";
   return p.replace(/\s+/g, " ").trim();
+}
+
+/* Chế độ gộp: 1 prompt yêu cầu vẽ nhiều màn trong CÙNG một ảnh */
+function buildComposite(screens) {
+  const s = state.style;
+  const n = screens.length;
+  const per = ASPECT_SHORT[s.aspect] || "9:19.5 portrait";
+  const platformTxt = opt("platform", s.platform);
+  const layout = n <= 4 ? "a single horizontal row" : "a neat grid";
+  const lines = [];
+  lines.push(
+    "Create ONE single image containing " + n + " different UI screens of " + platformTxt +
+    ", arranged in " + layout + ", evenly spaced on a clean neutral background."
+  );
+  lines.push(
+    "Overall image: wide landscape (about 16:9), high resolution, large enough to show every screen clearly. " +
+    "Each screen is a separate mockup with " + per + " aspect ratio and a short title label above it."
+  );
+  if (s.refMode) {
+    const follow = s.refFollow === "layout"
+      ? "Also mirror the reference's layout/composition where appropriate."
+      : "Match only the visual style of the reference; use a layout suited to each screen.";
+    lines.push(
+      "STYLE: Apply the EXACT visual style of the attached reference image to ALL screens — same color palette, " +
+      "typography, iconography, corner radius, shadows and spacing — so every screen looks like the same product. " +
+      follow + " Do NOT copy the reference's own content. (Attach the reference image to this message.)"
+    );
+  } else {
+    lines.push(
+      "STYLE (identical across all screens): " + opt("design", s.design) + "; " +
+      opt("mode", s.mode) + " with primary/accent color " + s.color + "."
+    );
+  }
+  if (s.appContext && s.appContext.trim()) lines.push("Product context: " + s.appContext.trim() + ".");
+  lines.push(opt("textlang", s.textlang) + ". Realistic content, consistent spacing, no lorem ipsum.");
+  if (s.extra && s.extra.trim()) lines.push(s.extra.trim() + ".");
+  lines.push("The " + n + " screens, in order:");
+  screens.forEach((sc, i) => {
+    const note = (state.notes[sc.id] || "").trim();
+    lines.push((i + 1) + ") " + sc.name + " — " + sc.base + (note ? " " + note + "." : ""));
+  });
+  return lines.join("\n");
 }
 
 /* ---------- All screens (built-in + custom) ---------- */
@@ -370,6 +421,7 @@ function updateCount() {
 
 function buildAllText() {
   const sel = selectedScreens();
+  if (state.outMode === "composite") return buildComposite(sel);
   return sel.map((s, i) => `### ${i + 1}. ${s.name}\n${buildPrompt(s)}`).join("\n\n");
 }
 
@@ -402,8 +454,24 @@ function escapeHtml(str) {
 }
 
 /* ---------- Toolbar & actions ---------- */
+function initTheme() {
+  const btn = $("#theme_toggle");
+  const cur = () => document.documentElement.getAttribute("data-theme") === "light" ? "light" : "dark";
+  const upd = () => { btn.textContent = cur() === "light" ? "🌙 Tối" : "☀️ Sáng"; };
+  upd();
+  btn.addEventListener("click", () => {
+    const next = cur() === "light" ? "dark" : "light";
+    document.documentElement.setAttribute("data-theme", next);
+    try { localStorage.setItem("ui-theme", next); } catch (e) {}
+    upd();
+  });
+}
+
 function initActions() {
   $("#search").addEventListener("input", renderLibrary);
+
+  $("#out_mode").value = state.outMode || "multi";
+  $("#out_mode").addEventListener("change", e => { state.outMode = e.target.value; save(); });
 
   $("#select_all").addEventListener("click", () => {
     // select only currently visible (filtered) screens
@@ -455,6 +523,7 @@ if ("serviceWorker" in navigator && location.protocol.startsWith("http")) {
 
 /* ---------- Boot ---------- */
 load();
+initTheme();
 initStylePanel();
 initActions();
 renderLibrary();

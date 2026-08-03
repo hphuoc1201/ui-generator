@@ -15,7 +15,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
 <meta name="apple-mobile-web-app-title" content="UI Prompt Studio" />
 <style>
-  :root {
+  :root, :root[data-theme="dark"] {
     --bg: #0f1117;
     --panel: #171a23;
     --panel-2: #1e222e;
@@ -25,7 +25,22 @@
     --accent: #4f7cff;
     --accent-2: #2f80ed;
     --ok: #27ae60;
+    --header-bg: #141824;
+    --bar-bg: rgba(20, 24, 34, 0.96);
     --radius: 12px;
+  }
+  :root[data-theme="light"] {
+    --bg: #f4f6f9;
+    --panel: #ffffff;
+    --panel-2: #eef1f6;
+    --border: #d7dde7;
+    --text: #1b2230;
+    --muted: #5b6472;
+    --accent: #2f6bff;
+    --accent-2: #2f80ed;
+    --ok: #1e9e54;
+    --header-bg: #ffffff;
+    --bar-bg: rgba(255, 255, 255, 0.96);
   }
   * { box-sizing: border-box; }
   body {
@@ -36,13 +51,15 @@
     line-height: 1.5;
   }
   header.app {
-    padding: 20px 24px;
+    padding: 16px 24px;
     border-bottom: 1px solid var(--border);
-    background: linear-gradient(180deg, #141824, #0f1117);
+    background: var(--header-bg);
     position: sticky; top: 0; z-index: 20;
+    display: flex; align-items: center; justify-content: space-between; gap: 16px;
   }
   header.app h1 { margin: 0; font-size: 20px; }
   header.app p { margin: 4px 0 0; color: var(--muted); font-size: 13px; }
+  #theme_toggle { flex: 0 0 auto; }
   .layout { display: grid; grid-template-columns: 320px 1fr; gap: 0; align-items: start; }
   @media (max-width: 900px) { .layout { grid-template-columns: 1fr; } }
 
@@ -108,12 +125,14 @@
 
   .stickybar {
     position: fixed; bottom: 0; left: 0; right: 0; z-index: 30;
-    background: rgba(20,24,34,.96); backdrop-filter: blur(8px);
+    background: var(--bar-bg); backdrop-filter: blur(8px);
     border-top: 1px solid var(--border); padding: 12px 24px;
     display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
   }
-  .stickybar .info { font-size: 13px; color: var(--muted); flex: 1; min-width: 160px; }
+  .stickybar .info { font-size: 13px; color: var(--muted); flex: 1; min-width: 120px; }
   .stickybar .info b { color: var(--text); }
+  .out-mode { font-size: 12px; color: var(--muted); display: flex; align-items: center; gap: 6px; }
+  .out-mode select { padding: 7px 9px; border-radius: 8px; background: var(--panel-2); border: 1px solid var(--border); color: var(--text); font-size: 12px; }
 
   .tip {
     background: var(--panel); border: 1px solid var(--border); border-left: 3px solid var(--accent);
@@ -145,11 +164,24 @@
   .refbox .note { font-size: 11px; color: var(--accent); margin-top: 8px; line-height: 1.4; }
   .note-label { font-size: 11px; color: var(--muted); margin-bottom: 3px; display: block; }
 </style>
+<script>
+  /* Đặt theme sớm để tránh nháy màn hình */
+  (function () {
+    try {
+      var t = localStorage.getItem("ui-theme");
+      if (!t) t = (window.matchMedia && window.matchMedia("(prefers-color-scheme: light)").matches) ? "light" : "dark";
+      document.documentElement.setAttribute("data-theme", t);
+    } catch (e) { document.documentElement.setAttribute("data-theme", "dark"); }
+  })();
+</script>
 </head>
 <body>
 <header class="app">
-  <h1>🎨 UI Prompt Studio</h1>
-  <p>Tạo hàng loạt prompt chuẩn để dán vào ChatGPT sinh ảnh giao diện UI — miễn phí, không cần API.</p>
+  <div>
+    <h1>🎨 UI Prompt Studio</h1>
+    <p>Tạo hàng loạt prompt chuẩn để dán vào ChatGPT sinh ảnh giao diện UI — miễn phí, không cần API.</p>
+  </div>
+  <button class="btn-ghost" id="theme_toggle" title="Chuyển sáng/tối">☀️ Sáng</button>
 </header>
 
 <div class="layout">
@@ -225,8 +257,8 @@
   <!-- ================= MAIN ================= -->
   <main>
     <div class="tip">
-      💡 <b>Mẹo chạy song song miễn phí:</b> Chọn nhiều màn → bấm <b>Copy tất cả</b> → mở <b>nhiều tab ChatGPT</b>, mỗi tab dán 1 prompt. Nhiều ảnh sẽ được tạo cùng lúc mà không tốn phí API.<br />
-      🎯 Muốn giữ đúng style bạn thích? Bật <b>“Dùng ảnh mẫu để kiểm soát style”</b> ở panel bên trái, rồi <b>đính kèm ảnh mẫu</b> vào từng tin nhắn ChatGPT — ảnh tạo ra sẽ bám theo style đó.
+      💡 <b>2 kiểu xuất</b> (chọn ở thanh dưới): <b>Mỗi màn 1 ảnh</b> → mở nhiều tab ChatGPT, mỗi tab dán 1 prompt để chạy song song miễn phí; hoặc <b>Gộp tất cả vào 1 ảnh</b> → 1 prompt yêu cầu ChatGPT vẽ nhiều màn trong cùng một ảnh (ghi rõ tỉ lệ ảnh tổng &amp; từng màn).<br />
+      🎯 Muốn giữ đúng style bạn thích? Bật <b>“Dùng ảnh mẫu để kiểm soát style”</b> ở panel bên trái, rồi <b>đính kèm ảnh mẫu</b> vào tin nhắn ChatGPT — ảnh tạo ra sẽ bám theo style đó.
     </div>
 
     <div class="toolbar">
@@ -243,8 +275,14 @@
 <!-- ================= STICKY ACTION BAR ================= -->
 <div class="stickybar">
   <div class="info">Đã chọn <b id="sel_count">0</b> màn hình</div>
-  <button class="btn-ghost" id="preview_all">👁 Xem prompt đã chọn</button>
-  <button class="btn-primary" id="copy_all">📋 Copy tất cả (đánh số)</button>
+  <label class="out-mode">Kiểu xuất:
+    <select id="out_mode">
+      <option value="multi">Mỗi màn 1 ảnh (nhiều prompt)</option>
+      <option value="composite">Gộp tất cả vào 1 ảnh</option>
+    </select>
+  </label>
+  <button class="btn-ghost" id="preview_all">👁 Xem prompt</button>
+  <button class="btn-primary" id="copy_all">📋 Copy tất cả</button>
 </div>
 
 <!-- ================= DIALOG: preview all ================= -->
