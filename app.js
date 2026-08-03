@@ -12,6 +12,7 @@ const OPTIONS = {
     { v: "web-mobile", label: "Web app (mobile)", text: "a mobile web app" },
   ],
   design: [
+    { v: "reference", label: "🎯 Theo ảnh mẫu tôi đính kèm", text: "" },
     { v: "minimal", label: "Minimal", text: "clean minimalist design, generous whitespace" },
     { v: "flat", label: "Flat", text: "flat modern design" },
     { v: "material", label: "Material Design", text: "Google Material Design 3, elevation and ripples" },
@@ -751,17 +752,17 @@ function syncStyleInputs() {
   $("#s_color_hex").value = s.color;
   $("#s_extra").value = s.extra;
   $("#s_appctx").value = s.appContext;
-  $("#s_refmode").checked = !!s.refMode;
   $("#s_reffollow").value = s.refFollow;
 }
 
-/* Bật/tắt hiển thị các trường tuỳ theo chế độ ảnh mẫu */
+/* refMode = chọn "Theo ảnh mẫu" trong dropdown Phong cách thiết kế */
 function updateRefUI() {
   if (!state) return;
-  const on = !!state.style.refMode;
+  const on = state.style.design === "reference";
+  state.style.refMode = on; // đồng bộ cho phần ghép prompt
   $("#ref_opts").style.display = on ? "block" : "none";
-  // Khi bám theo ảnh mẫu: ẩn các trường style-bằng-chữ để tránh xung đột
-  ["field-design", "field-mode", "field-color"].forEach(id => {
+  // Khi bám theo ảnh mẫu: ẩn chế độ sáng/tối & màu chủ đạo (lấy từ ảnh mẫu)
+  ["field-mode", "field-color"].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.style.display = on ? "none" : "";
   });
@@ -781,17 +782,18 @@ function initStylePanel() {
     state.style[key] = e.target.value; save(); renderLibrary();
   });
   bind("s_platform", "platform");
-  bind("s_design", "design");
   bind("s_mode", "mode");
   bind("s_fidelity", "fidelity");
   bind("s_aspect", "aspect");
   bind("s_textlang", "textlang");
   bind("s_reffollow", "refFollow");
 
-  $("#s_appctx").addEventListener("input", e => { state.style.appContext = e.target.value; save(); renderLibrary(); });
-  $("#s_refmode").addEventListener("change", e => {
-    state.style.refMode = e.target.checked; save(); updateRefUI(); renderLibrary();
+  // Phong cách thiết kế: "reference" bật chế độ bám ảnh mẫu
+  $("#s_design").addEventListener("change", e => {
+    state.style.design = e.target.value; save(); updateRefUI(); renderLibrary();
   });
+
+  $("#s_appctx").addEventListener("input", e => { state.style.appContext = e.target.value; save(); renderLibrary(); });
 
   $("#s_color").addEventListener("input", e => {
     state.style.color = e.target.value; $("#s_color_hex").value = e.target.value; save(); renderLibrary();
@@ -1172,6 +1174,8 @@ function openProject(id) {
   if (!state.flagged) state.flagged = {};
   if (!("logoData" in state)) { state.logoData = null; state.logoName = ""; }
   state.style = Object.assign({}, DEFAULT_STYLE, state.style); // đảm bảo có trường brand mới
+  // Migrate: dự án cũ bật ảnh mẫu bằng checkbox -> chuyển thành design="reference"
+  if (state.style.refMode && state.style.design !== "reference") state.style.design = "reference";
   try { localStorage.setItem(ACTIVE_KEY, id); } catch (e) {}
   syncStyleInputs(); updateRefUI(); renderBrandSummary(); renderLibrary();
   showView("workspace");

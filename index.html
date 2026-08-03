@@ -161,6 +161,7 @@
   .refbox .chkrow .t { font-size: 13px; font-weight: 700; }
   .refbox .sub { font-size: 11px; color: var(--muted); margin-top: 4px; }
   .refbox .ref-opts { margin-top: 10px; }
+  .refbox .ref-head { font-size: 13px; font-weight: 700; margin-bottom: 8px; }
   .refbox .note { font-size: 11px; color: var(--accent); margin-top: 8px; line-height: 1.4; }
   .note-label { font-size: 11px; color: var(--muted); margin-bottom: 3px; display: block; }
 
@@ -297,27 +298,6 @@
       <button class="btn-primary btn-sm" id="open_brand">Chỉnh</button>
     </div>
 
-    <!-- Reference-image mode -->
-    <div class="refbox">
-      <label class="chkrow">
-        <input type="checkbox" id="s_refmode" />
-        <span>
-          <span class="t">🎯 Dùng ảnh mẫu để kiểm soát style</span>
-          <span class="sub">Bám 100% theo style ảnh bạn đính kèm trong ChatGPT (màu, font, bo góc, đổ bóng, spacing...).</span>
-        </span>
-      </label>
-      <div class="ref-opts" id="ref_opts" style="display:none;">
-        <div class="field" style="margin-bottom:0;">
-          <label>Mức độ bám theo ảnh mẫu</label>
-          <select id="s_reffollow">
-            <option value="style">Chỉ theo phong cách (màu/font/bo góc) — bố cục tự do</option>
-            <option value="layout">Theo cả phong cách + bố cục tương tự</option>
-          </select>
-        </div>
-        <div class="note">⚠️ Nhớ <b>đính kèm ảnh mẫu</b> vào tin nhắn ChatGPT khi dán prompt (mỗi tab một ảnh).</div>
-      </div>
-    </div>
-
     <div class="field">
       <label>Nền tảng</label>
       <select id="s_platform"></select>
@@ -325,6 +305,19 @@
     <div class="field" id="field-design">
       <label>Phong cách thiết kế</label>
       <select id="s_design"></select>
+    </div>
+
+    <!-- Hiện khi chọn "Theo ảnh mẫu tôi đính kèm" -->
+    <div class="refbox" id="ref_opts" style="display:none;">
+      <div class="ref-head">🎯 Bám theo ảnh mẫu bạn đính kèm</div>
+      <div class="field" style="margin-bottom:0;">
+        <label>Mức độ bám theo ảnh mẫu</label>
+        <select id="s_reffollow">
+          <option value="style">Chỉ theo phong cách (màu/font/bo góc) — bố cục tự do</option>
+          <option value="layout">Theo cả phong cách + bố cục tương tự</option>
+        </select>
+      </div>
+      <div class="note">⚠️ Nhớ <b>đính kèm ảnh mẫu</b> vào tin nhắn ChatGPT khi dán prompt (mỗi tab một ảnh).</div>
     </div>
     <div class="field" id="field-mode">
       <label>Chế độ</label>
@@ -361,7 +354,7 @@
   <main>
     <div class="tip">
       💡 Chọn tối đa <b>3 màn</b> mỗi lần tạo ảnh (để ảnh đủ chi tiết): <b>1 màn → ảnh dọc 9:19.5</b> · <b>2 màn → ảnh vuông 1:1</b> · <b>3 màn → ảnh ngang 16:9</b>. Bấm <b>Copy prompt</b> rồi dán vào ChatGPT.<br />
-      🎯 Muốn giữ đúng style bạn thích? Bật <b>“Dùng ảnh mẫu để kiểm soát style”</b> ở panel bên trái, rồi <b>đính kèm ảnh mẫu</b> vào tin nhắn ChatGPT.
+      🎯 Muốn giữ đúng style bạn thích? Ở <b>Phong cách thiết kế</b> (panel trái) chọn <b>“Theo ảnh mẫu tôi đính kèm”</b>, rồi <b>đính kèm ảnh mẫu</b> vào tin nhắn ChatGPT.
     </div>
 
     <div class="toolbar">

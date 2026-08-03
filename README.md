@@ -86,11 +86,12 @@ Bảng màu &amp; logo lưu **theo từng dự án**, tự chèn vào mọi prom
 
 ## Kiểm soát style bằng ảnh mẫu
 
-Bật **🎯 Dùng ảnh mẫu để kiểm soát style** ở panel trái nếu bạn đã có ảnh style
-ưng ý: prompt sẽ yêu cầu ChatGPT tái tạo **chính xác** bảng màu, typography, bo
-góc, đổ bóng, spacing... của ảnh bạn **đính kèm vào tin nhắn ChatGPT**, và chỉ
-tạo nội dung mới cho màn hình cần. Chọn mức bám: chỉ phong cách, hoặc cả bố cục.
-Khi không dùng ảnh mẫu: chọn style bằng chữ (phong cách, màu chủ đạo, sáng/tối).
+Ở **Phong cách thiết kế** (panel trái) chọn **🎯 Theo ảnh mẫu tôi đính kèm** nếu
+bạn đã có ảnh style ưng ý: prompt sẽ yêu cầu ChatGPT tái tạo **chính xác** bảng
+màu, typography, bo góc, đổ bóng, spacing... của ảnh bạn **đính kèm vào tin nhắn
+ChatGPT**, và chỉ tạo nội dung mới cho màn hình cần. Chọn mức bám: chỉ phong
+cách, hoặc cả bố cục. Chọn phong cách khác (Minimal, Material...) để mô tả style
+bằng chữ (kèm màu chủ đạo, sáng/tối).
 
 ## Giao diện
 
