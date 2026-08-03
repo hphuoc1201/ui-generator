@@ -429,6 +429,7 @@ const DEFAULT_STYLE = {
   platform: "ios", design: "minimal", mode: "light", fidelity: "high",
   aspect: "phone", textlang: "vi", color: "#2F80ED", extra: "",
   appContext: "", refMode: false, refFollow: "style",
+  brandName: "", brandSecondary: "", brandAccent: "", // "" = tự động
 };
 
 let projects = {};   // id -> project
@@ -443,7 +444,67 @@ function blankProject(name) {
     selected: {}, notes: {}, fields: {}, custom: [],
     flagged: {},  // màn thuộc dự án (từ feature list) -> hiện nhóm riêng trên đầu
     features: [], // các dòng CSV đã import: {feature, screen, note, matchedId}
+    logoData: null, logoName: "", // logo upload (dataURL đã thu nhỏ)
   };
+}
+
+/* ---------- Màu sắc: helpers + auto palette (kiểu Material) ---------- */
+function hexToRgb(hex) {
+  hex = ("" + hex).replace("#", "");
+  if (hex.length === 3) hex = hex.split("").map(c => c + c).join("");
+  const n = parseInt(hex, 16);
+  return { r: (n >> 16) & 255, g: (n >> 8) & 255, b: n & 255 };
+}
+function rgbToHex(r, g, b) {
+  const h = x => Math.max(0, Math.min(255, Math.round(x))).toString(16).padStart(2, "0");
+  return "#" + h(r) + h(g) + h(b);
+}
+function rgbToHsl(r, g, b) {
+  r /= 255; g /= 255; b /= 255;
+  const mx = Math.max(r, g, b), mn = Math.min(r, g, b);
+  let h = 0, s = 0, l = (mx + mn) / 2;
+  const d = mx - mn;
+  if (d) {
+    s = l > 0.5 ? d / (2 - mx - mn) : d / (mx + mn);
+    if (mx === r) h = (g - b) / d + (g < b ? 6 : 0);
+    else if (mx === g) h = (b - r) / d + 2;
+    else h = (r - g) / d + 4;
+    h *= 60;
+  }
+  return { h, s, l };
+}
+function hslToHex(h, s, l) {
+  h = ((h % 360) + 360) % 360; s = Math.max(0, Math.min(1, s)); l = Math.max(0, Math.min(1, l));
+  const c = (1 - Math.abs(2 * l - 1)) * s, x = c * (1 - Math.abs((h / 60) % 2 - 1)), m = l - c / 2;
+  let r = 0, g = 0, b = 0;
+  if (h < 60) [r, g, b] = [c, x, 0]; else if (h < 120) [r, g, b] = [x, c, 0];
+  else if (h < 180) [r, g, b] = [0, c, x]; else if (h < 240) [r, g, b] = [0, x, c];
+  else if (h < 300) [r, g, b] = [x, 0, c]; else [r, g, b] = [c, 0, x];
+  return rgbToHex((r + m) * 255, (g + m) * 255, (b + m) * 255);
+}
+function luminance(hex) {
+  const { r, g, b } = hexToRgb(hex);
+  const a = [r, g, b].map(v => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); });
+  return 0.2126 * a[0] + 0.7152 * a[1] + 0.0722 * a[2];
+}
+function onColor(hex) { return luminance(hex) > 0.5 ? "#111418" : "#ffffff"; }
+
+/* Sinh bảng màu brand từ primary (+ override tuỳ chọn) */
+function brandPalette() {
+  const s = state.style;
+  const primary = s.color || "#2F80ED";
+  const hsl = (() => { const c = hexToRgb(primary); return rgbToHsl(c.r, c.g, c.b); })();
+  const secondary = (s.brandSecondary && s.brandSecondary.trim())
+    ? s.brandSecondary
+    : hslToHex(hsl.h + 20, Math.max(0.25, hsl.s * 0.5), Math.min(0.62, Math.max(0.45, hsl.l)));
+  const accent = (s.brandAccent && s.brandAccent.trim())
+    ? s.brandAccent
+    : hslToHex(hsl.h + 150, Math.max(0.55, hsl.s * 0.85), 0.55);
+  const dark = s.mode === "dark";
+  const bg = dark ? hslToHex(hsl.h, 0.14, 0.10) : hslToHex(hsl.h, 0.30, 0.975);
+  const surface = dark ? hslToHex(hsl.h, 0.12, 0.16) : "#ffffff";
+  const onSurface = dark ? "#e7e9ee" : "#141821";
+  return { primary, secondary, accent, bg, surface, onSurface, onPrimary: onColor(primary) };
 }
 
 /* Lấy/đặt giá trị câu trả lời cho 1 field của 1 màn */
@@ -548,17 +609,42 @@ function appCtx() {
   return c ? " Product context: " + c + "." : "";
 }
 
+/* Khối branding: màu (nếu includeColors) + tên + logo + cấm logo ngẫu nhiên.
+   Dùng chung cho styleSuffix, refSuffix, buildComposite. */
+function brandBlock(includeColors) {
+  const s = state.style;
+  const name = (s.brandName || "").trim();
+  const bits = [];
+  if (includeColors) {
+    const p = brandPalette();
+    bits.push("Brand colors — use ONLY this palette consistently: primary " + p.primary +
+      ", secondary " + p.secondary + ", accent " + p.accent + ".");
+  }
+  if (name) bits.push("The app/brand name is \"" + name + "\".");
+  if (state.logoData) {
+    bits.push("LOGO: Use the ATTACHED logo image EXACTLY as the app's logo wherever a logo appears (splash, app bar, headers, empty states). Do not recolor, redraw, crop, or invent a different logo. (Attach the logo image file to this message.)");
+  } else {
+    bits.push("LOGO: Use a simple, clean text wordmark" + (name ? " reading \"" + name + "\"" : " of the app name") + " as the logo.");
+  }
+  bits.push("Do NOT insert any real-world, third-party, or randomly-invented brand logos, watermarks, or trademarks.");
+  return bits.join(" ");
+}
+function brandLogoAttachNote() {
+  return state.logoData ? " Remember to attach the brand logo image to this message." : "";
+}
+
 /* Suffix khi KHÔNG dùng ảnh mẫu — mô tả style bằng chữ */
 function styleSuffix() {
   const s = state.style;
   const bits = [
     "Design style: " + opt("design", s.design) + ".",
-    "Color scheme: " + opt("mode", s.mode) + " with primary/accent color " + s.color + ".",
+    "Color scheme: " + opt("mode", s.mode) + ".",
+    brandBlock(true),
     opt("aspect", s.aspect) + ".",
     opt("textlang", s.textlang) + ".",
   ];
   if (s.extra && s.extra.trim()) bits.push(s.extra.trim() + ".");
-  bits.push("Realistic placeholder content, consistent spacing, crisp icons, no lorem ipsum. Render as a polished single-screen mockup.");
+  bits.push("Realistic placeholder content, consistent spacing, crisp icons, no lorem ipsum. Render as a polished single-screen mockup." + brandLogoAttachNote());
   return bits.join(" ");
 }
 
@@ -572,11 +658,12 @@ function refSuffix() {
     "STYLE REFERENCE: I am attaching a reference image. Replicate its exact visual style — color palette, typography and font weights, iconography, corner radius, shadows, borders, spacing, and overall design language — so the result looks like it belongs to the same product.",
     follow,
     "Do NOT copy the reference's own text or screen content; create new, realistic content appropriate for this screen.",
+    brandBlock(false),
     opt("aspect", s.aspect) + ".",
     opt("textlang", s.textlang) + ".",
   ];
   if (s.extra && s.extra.trim()) bits.push(s.extra.trim() + ".");
-  bits.push("Render as a polished single-screen mockup. IMPORTANT: attach the style reference image to this message.");
+  bits.push("Render as a polished single-screen mockup. IMPORTANT: attach the style reference image" + (state.logoData ? " and the brand logo image" : "") + " to this message.");
   return bits.join(" ");
 }
 
@@ -618,18 +705,17 @@ function buildComposite(screens) {
       "typography, iconography, corner radius, shadows and spacing — so every screen looks like the same product. " +
       follow + " Do NOT copy the reference's own content. (Attach the reference image to this message.)"
     );
+    lines.push(brandBlock(false));
   } else {
-    lines.push(
-      "STYLE (identical across all screens): " + opt("design", s.design) + "; " +
-      opt("mode", s.mode) + " with primary/accent color " + s.color + "."
-    );
+    lines.push("STYLE (identical across all screens): " + opt("design", s.design) + "; " + opt("mode", s.mode) + ".");
+    lines.push(brandBlock(true));
   }
   if (s.appContext && s.appContext.trim()) lines.push("Product context: " + s.appContext.trim() + ".");
   lines.push(opt("textlang", s.textlang) + ". Realistic content, consistent spacing, crisp icons, no lorem ipsum.");
   if (s.extra && s.extra.trim()) lines.push(s.extra.trim() + ".");
   lines.push(
     "IMPORTANT: Render EVERY screen fully detailed, as if each were a standalone high-fidelity mockup. " +
-    "Do NOT simplify, crop, or omit any of the components listed for each screen below."
+    "Do NOT simplify, crop, or omit any of the components listed for each screen below." + brandLogoAttachNote()
   );
   lines.push("The " + n + " screens, in order:");
   screens.forEach((sc, i) => {
@@ -1084,8 +1170,10 @@ function openProject(id) {
   if (!projects[id]) return;
   state = projects[id];
   if (!state.flagged) state.flagged = {};
+  if (!("logoData" in state)) { state.logoData = null; state.logoName = ""; }
+  state.style = Object.assign({}, DEFAULT_STYLE, state.style); // đảm bảo có trường brand mới
   try { localStorage.setItem(ACTIVE_KEY, id); } catch (e) {}
-  syncStyleInputs(); updateRefUI(); renderLibrary();
+  syncStyleInputs(); updateRefUI(); renderBrandSummary(); renderLibrary();
   showView("workspace");
 }
 
@@ -1179,6 +1267,96 @@ function renderCsvPreview(analysis) {
 /* Danh sách template gốc (không phụ thuộc dự án đang mở — dùng cho preview) */
 function allScreensStatic() { return SCREENS; }
 
+/* ---------- Brand kit: summary, preview, dialog ---------- */
+function renderBrandSummary() {
+  if (!state) return;
+  const p = brandPalette();
+  const name = (state.style.brandName || "").trim();
+  $("#brand_sum_name").textContent = name || "Bộ nhận diện (Brand)";
+  const thumb = $("#brand_logo_thumb");
+  thumb.innerHTML = state.logoData ? `<img src="${state.logoData}" alt="logo" />` : "🎨";
+  $("#brand_swatches").innerHTML = [p.primary, p.secondary, p.accent]
+    .map(c => `<span style="background:${c}"></span>`).join("");
+}
+
+/* Vẽ preview 1 màn app mẫu + components bằng palette hiện tại */
+function renderBrandPreview() {
+  const p = brandPalette();
+  const name = ($("#b_name").value || "App").trim() || "App";
+  const logo = state.logoData
+    ? `<img src="${state.logoData}" style="width:22px;height:22px;object-fit:contain;border-radius:5px;background:#fff" />`
+    : `<div style="width:22px;height:22px;border-radius:6px;background:${p.onPrimary};opacity:.9"></div>`;
+  const el = $("#brand_preview");
+  el.innerHTML = `
+    <div style="background:${p.bg};color:${p.onSurface};font-size:12px;">
+      <div style="background:${p.primary};color:${p.onPrimary};padding:12px 14px;display:flex;align-items:center;gap:8px;">
+        ${logo}<b style="font-size:13px;">${escapeHtml(name)}</b>
+        <span style="margin-left:auto;opacity:.85;">⋯</span>
+      </div>
+      <div style="padding:14px;display:flex;flex-direction:column;gap:10px;">
+        <div style="background:${p.surface};border:1px solid rgba(128,128,128,.2);border-radius:10px;padding:12px;">
+          <div style="font-weight:700;margin-bottom:4px;color:${p.onSurface}">Thẻ nội dung</div>
+          <div style="opacity:.7;font-size:11px;color:${p.onSurface}">Một đoạn mô tả ngắn trong card.</div>
+          <div style="display:flex;gap:8px;margin-top:10px;">
+            <button style="background:${p.primary};color:${p.onPrimary};border:none;border-radius:8px;padding:6px 12px;font-size:11px;font-weight:700;">Nút chính</button>
+            <button style="background:transparent;color:${p.primary};border:1px solid ${p.primary};border-radius:8px;padding:6px 12px;font-size:11px;font-weight:700;">Phụ</button>
+          </div>
+        </div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+          <span style="background:${p.secondary};color:${onColor(p.secondary)};border-radius:999px;padding:4px 10px;font-size:11px;">Secondary</span>
+          <span style="background:${p.accent};color:${onColor(p.accent)};border-radius:999px;padding:4px 10px;font-size:11px;">Accent</span>
+          <span style="background:${p.surface};color:${p.onSurface};border:1px solid rgba(128,128,128,.25);border-radius:999px;padding:4px 10px;font-size:11px;">Chip</span>
+        </div>
+      </div>
+      <div style="display:flex;border-top:1px solid rgba(128,128,128,.2);background:${p.surface};">
+        ${["Trang chủ", "Tìm kiếm", "Cá nhân"].map((t, i) => `<div style="flex:1;text-align:center;padding:8px 0;font-size:10px;color:${i === 0 ? p.primary : p.onSurface};opacity:${i === 0 ? 1 : .55};font-weight:${i === 0 ? 700 : 400}">${t}</div>`).join("")}
+      </div>
+    </div>`;
+  const hx = (label, c) => `<span class="hx"><i style="background:${c}"></i>${label} ${c}</span>`;
+  $("#brand_hexrow").innerHTML = hx("Primary", p.primary) + hx("Secondary", p.secondary) + hx("Accent", p.accent);
+}
+
+function syncBrandDialog() {
+  const s = state.style;
+  $("#b_name").value = s.brandName || "";
+  $("#b_primary").value = s.color; $("#b_primary_hex").value = s.color;
+  const secAuto = !(s.brandSecondary && s.brandSecondary.trim());
+  const accAuto = !(s.brandAccent && s.brandAccent.trim());
+  $("#b_sec_auto").checked = secAuto; $("#b_acc_auto").checked = accAuto;
+  $("#b_sec_row").style.display = secAuto ? "none" : "flex";
+  $("#b_acc_row").style.display = accAuto ? "none" : "flex";
+  const pal = brandPalette();
+  $("#b_secondary").value = secAuto ? pal.secondary : s.brandSecondary;
+  $("#b_secondary_hex").value = $("#b_secondary").value;
+  $("#b_accent").value = accAuto ? pal.accent : s.brandAccent;
+  $("#b_accent_hex").value = $("#b_accent").value;
+  const hasLogo = !!state.logoData;
+  $("#b_logo_row").style.display = hasLogo ? "flex" : "none";
+  if (hasLogo) $("#b_logo_preview").src = state.logoData;
+  renderBrandPreview();
+}
+
+/* Thu nhỏ ảnh logo -> dataURL gọn để lưu localStorage */
+function downscaleImage(file, maxSize, cb) {
+  const reader = new FileReader();
+  reader.onload = () => {
+    const img = new Image();
+    img.onload = () => {
+      let { width: w, height: h } = img;
+      const scale = Math.min(1, maxSize / Math.max(w, h));
+      w = Math.round(w * scale); h = Math.round(h * scale);
+      const canvas = document.createElement("canvas");
+      canvas.width = w; canvas.height = h;
+      canvas.getContext("2d").drawImage(img, 0, 0, w, h);
+      try { cb(canvas.toDataURL("image/png")); } catch (e) { cb(reader.result); }
+    };
+    img.onerror = () => cb(null);
+    img.src = reader.result;
+  };
+  reader.onerror = () => cb(null);
+  reader.readAsDataURL(file);
+}
+
 /* ---------- Toolbar & actions ---------- */
 function initTheme() {
   const btn = $("#theme_toggle");
@@ -1224,6 +1402,63 @@ function initActions() {
     state.custom.push({ id, name, base: desc, group: "Tuỳ chỉnh", desc: "Màn tự định nghĩa" });
     state.selected[id] = true;
     save(); dlgA.close(); renderLibrary();
+  });
+
+  // Brand kit dialog
+  const dlgBrand = $("#dlg_brand");
+  $("#open_brand").addEventListener("click", () => { syncBrandDialog(); dlgBrand.showModal(); });
+  $("#b_done").addEventListener("click", () => { dlgBrand.close(); renderBrandSummary(); renderLibrary(); });
+
+  const setPrimary = v => {
+    if (!/^#?[0-9a-fA-F]{6}$/.test(v.trim())) return;
+    state.style.color = v.trim().startsWith("#") ? v.trim() : "#" + v.trim();
+    $("#b_primary").value = state.style.color; $("#b_primary_hex").value = state.style.color;
+    $("#s_color").value = state.style.color; $("#s_color_hex").value = state.style.color;
+    if ($("#b_sec_auto").checked || $("#b_acc_auto").checked) syncBrandDialog(); else renderBrandPreview();
+    save();
+  };
+  $("#b_primary").addEventListener("input", e => setPrimary(e.target.value));
+  $("#b_primary_hex").addEventListener("change", e => setPrimary(e.target.value));
+  $("#b_name").addEventListener("input", e => { state.style.brandName = e.target.value; save(); renderBrandPreview(); });
+
+  const bindOverride = (autoId, colorId, hexId, rowId, key) => {
+    $(autoId).addEventListener("change", e => {
+      if (e.target.checked) { state.style[key] = ""; }
+      else { state.style[key] = $(colorId).value; }
+      $(rowId).style.display = e.target.checked ? "none" : "flex";
+      save(); syncBrandDialog();
+    });
+    const setV = v => {
+      if (!/^#?[0-9a-fA-F]{6}$/.test(v.trim())) return;
+      const hex = v.trim().startsWith("#") ? v.trim() : "#" + v.trim();
+      state.style[key] = hex; $(colorId).value = hex; $(hexId).value = hex;
+      renderBrandPreview(); save();
+    };
+    $(colorId).addEventListener("input", e => setV(e.target.value));
+    $(hexId).addEventListener("change", e => setV(e.target.value));
+  };
+  bindOverride("#b_sec_auto", "#b_secondary", "#b_secondary_hex", "#b_sec_row", "brandSecondary");
+  bindOverride("#b_acc_auto", "#b_accent", "#b_accent_hex", "#b_acc_row", "brandAccent");
+
+  $("#b_logo_file").addEventListener("change", e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    downscaleImage(file, 256, data => {
+      if (!data) { alert("Không đọc được ảnh logo."); return; }
+      state.logoData = data; state.logoName = file.name;
+      try { save(); } catch (err) { alert("Logo quá lớn để lưu — thử ảnh nhỏ hơn."); }
+      syncBrandDialog(); renderBrandSummary();
+    });
+    e.target.value = "";
+  });
+  $("#b_logo_remove").addEventListener("click", () => {
+    state.logoData = null; state.logoName = ""; save(); syncBrandDialog(); renderBrandSummary();
+  });
+  $("#b_logo_dl").addEventListener("click", () => {
+    if (!state.logoData) return;
+    const a = document.createElement("a");
+    a.href = state.logoData; a.download = state.logoName || "logo.png";
+    document.body.appendChild(a); a.click(); a.remove();
   });
 
   // dashboard & điều hướng

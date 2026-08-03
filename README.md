@@ -67,6 +67,23 @@ kèm chỉ dẫn *"không được rút gọn hay bỏ thành phần nào"*. M�
 - **Yêu cầu thêm**: ô tự do cho từng màn (ghi chú CSV tự điền vào đây).
 - **Mô tả app**: điền 1 lần trong style panel, áp dụng mọi màn.
 
+## Bộ nhận diện thương hiệu (Brand) — chống logo/màu ngẫu nhiên
+
+Trước đây ChatGPT hay chèn logo/màu ngẫu nhiên. Nút **🎨 Bộ nhận diện (Brand)**
+trong panel trái mở hộp thoại kiểu *Material Theme Builder*:
+
+- **Màu chủ đạo** → tự sinh **màu phụ + màu nhấn + nền** (có thể chỉnh tay từng màu)
+- **Xem trước** ngay trên 1 màn app mẫu (app bar, nút, card, chip, bottom nav)
+- **Tên thương hiệu** + **upload logo**
+
+Cách chống logo ngẫu nhiên:
+- **Có logo (upload):** prompt yêu cầu *dùng đúng logo bạn đính kèm*, không tự chế
+  — nhớ **đính kèm file logo** vào tin nhắn ChatGPT (nút "Tải lại" để lấy file).
+- **Chưa có logo:** prompt dùng **chữ tên brand** làm logo.
+- **Luôn luôn:** prompt **cấm** AI chèn logo/thương hiệu có thật hay bịa ngẫu nhiên.
+
+Bảng màu &amp; logo lưu **theo từng dự án**, tự chèn vào mọi prompt của dự án đó.
+
 ## Kiểm soát style bằng ảnh mẫu
 
 Bật **🎯 Dùng ảnh mẫu để kiểm soát style** ở panel trái nếu bạn đã có ảnh style

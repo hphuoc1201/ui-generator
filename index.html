@@ -212,6 +212,28 @@
   .csv-preview .map-ok { color: var(--ok); font-weight: 600; }
   .csv-preview .map-new { color: var(--accent); font-weight: 600; }
   .csv-summary { font-size: 12px; color: var(--muted); margin-top: 8px; }
+
+  /* Brand summary in panel */
+  .brandbox { display: flex; align-items: center; justify-content: space-between; gap: 8px; background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 10px; margin-bottom: 16px; }
+  .brand-sum-left { display: flex; align-items: center; gap: 10px; min-width: 0; }
+  .brand-logo-thumb { width: 38px; height: 38px; border-radius: 9px; background: var(--panel-2); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; font-size: 18px; overflow: hidden; flex: 0 0 auto; }
+  .brand-logo-thumb img { width: 100%; height: 100%; object-fit: contain; }
+  .brand-sum-name { font-size: 13px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .brand-swatches { display: flex; gap: 4px; margin-top: 4px; }
+  .brand-swatches span { width: 16px; height: 16px; border-radius: 4px; border: 1px solid rgba(128,128,128,.3); }
+
+  /* Brand dialog */
+  #dlg_brand { width: min(820px, 94vw); }
+  .brand-grid { display: grid; grid-template-columns: 1fr 300px; gap: 20px; }
+  @media (max-width: 680px) { .brand-grid { grid-template-columns: 1fr; } }
+  .chkrow-inline { display: flex; align-items: center; gap: 7px; cursor: pointer; }
+  .chkrow-inline input { width: 15px; height: 15px; accent-color: var(--accent); }
+  .brand-logo-row { display: flex; align-items: center; gap: 8px; margin-top: 8px; }
+  .brand-logo-row img { width: 46px; height: 46px; object-fit: contain; border: 1px solid var(--border); border-radius: 8px; background: #fff; }
+  .brand-preview { border: 1px solid var(--border); border-radius: 14px; overflow: hidden; }
+  .brand-hexrow { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; font-size: 11px; }
+  .brand-hexrow .hx { display: flex; align-items: center; gap: 5px; color: var(--muted); }
+  .brand-hexrow .hx i { width: 14px; height: 14px; border-radius: 4px; border: 1px solid rgba(128,128,128,.3); display: inline-block; }
 </style>
 <script>
   /* Đặt theme sớm để tránh nháy màn hình */
@@ -261,6 +283,18 @@
     <div class="field">
       <label>Mô tả app của bạn</label>
       <textarea id="s_appctx" placeholder="vd: app quản lý chi tiêu cá nhân, phong cách trẻ trung, khách hàng gen Z..."></textarea>
+    </div>
+
+    <!-- Brand kit -->
+    <div class="brandbox" id="brand_summary">
+      <div class="brand-sum-left">
+        <div class="brand-logo-thumb" id="brand_logo_thumb">🎨</div>
+        <div>
+          <div class="brand-sum-name" id="brand_sum_name">Bộ nhận diện (Brand)</div>
+          <div class="brand-swatches" id="brand_swatches"></div>
+        </div>
+      </div>
+      <button class="btn-primary btn-sm" id="open_brand">Chỉnh</button>
     </div>
 
     <!-- Reference-image mode -->
@@ -377,6 +411,59 @@
   <div class="dialog-actions">
     <button class="btn-ghost" id="csv_close">Huỷ</button>
     <button class="btn-primary" id="csv_apply">Tạo dự án</button>
+  </div>
+</dialog>
+
+<!-- ================= DIALOG: Brand kit ================= -->
+<dialog id="dlg_brand">
+  <h3>🎨 Bộ nhận diện thương hiệu (Brand)</h3>
+  <p class="dlg-sub">Đặt màu &amp; logo để mọi màn hình đồng nhất — hết cảnh AI chèn logo/màu ngẫu nhiên.</p>
+  <div class="brand-grid">
+    <div class="brand-controls">
+      <div class="field">
+        <label>Tên thương hiệu</label>
+        <input type="text" id="b_name" placeholder="vd: SpaBooking" />
+      </div>
+      <div class="field">
+        <label>Màu chủ đạo (Primary)</label>
+        <div class="color-row">
+          <input type="color" id="b_primary" value="#2F80ED" />
+          <input type="text" id="b_primary_hex" value="#2F80ED" />
+        </div>
+      </div>
+      <div class="field">
+        <label class="chkrow-inline"><input type="checkbox" id="b_sec_auto" checked /> Màu phụ (Secondary) — tự động</label>
+        <div class="color-row" id="b_sec_row" style="display:none;">
+          <input type="color" id="b_secondary" value="#7A5AF8" />
+          <input type="text" id="b_secondary_hex" value="#7A5AF8" />
+        </div>
+      </div>
+      <div class="field">
+        <label class="chkrow-inline"><input type="checkbox" id="b_acc_auto" checked /> Màu nhấn (Accent) — tự động</label>
+        <div class="color-row" id="b_acc_row" style="display:none;">
+          <input type="color" id="b_accent" value="#F2994A" />
+          <input type="text" id="b_accent_hex" value="#F2994A" />
+        </div>
+      </div>
+      <div class="field">
+        <label>Logo (upload — sẽ đính kèm vào ChatGPT)</label>
+        <input type="file" id="b_logo_file" accept="image/*" />
+        <div class="brand-logo-row" id="b_logo_row" style="display:none;">
+          <img id="b_logo_preview" alt="logo" />
+          <button class="btn-ghost btn-sm" id="b_logo_dl">⬇ Tải lại</button>
+          <button class="btn-ghost btn-sm" id="b_logo_remove">✕ Xoá</button>
+        </div>
+        <p class="dlg-sub" style="margin:6px 0 0;">Chưa có logo → prompt dùng chữ tên brand &amp; cấm logo ngẫu nhiên. Có logo → prompt yêu cầu dùng đúng logo bạn <b>đính kèm</b> vào ChatGPT.</p>
+      </div>
+    </div>
+    <div class="brand-preview-wrap">
+      <div class="flabel" style="margin-bottom:6px;">Xem trước</div>
+      <div class="brand-preview" id="brand_preview"></div>
+      <div class="brand-hexrow" id="brand_hexrow"></div>
+    </div>
+  </div>
+  <div class="dialog-actions">
+    <button class="btn-primary" id="b_done">Xong</button>
   </div>
 </dialog>
 

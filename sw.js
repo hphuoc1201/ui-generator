@@ -2,7 +2,7 @@
    Chiến lược: stale-while-revalidate — trả bản cache ngay cho nhanh,
    đồng thời tải bản mới ở nền để lần mở sau luôn cập nhật. */
 
-const CACHE = "ui-prompt-studio-v2";
+const CACHE = "ui-prompt-studio-v3";
 const CORE = [
   "./",
   "./index.html",
