@@ -367,6 +367,14 @@ function initActions() {
   });
 }
 
+/* ---------- Service worker (offline + install) ---------- */
+/* Chỉ chạy khi phục vụ qua http/https (không chạy khi mở file:// trực tiếp) */
+if ("serviceWorker" in navigator && location.protocol.startsWith("http")) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("sw.js").catch(() => { /* offline vẫn dùng bản cache cũ */ });
+  });
+}
+
 /* ---------- Boot ---------- */
 load();
 initStylePanel();

@@ -37,9 +37,38 @@ tiếp theo. Tool này giúp bạn:
 - Thêm màn tự định nghĩa.
 - Tự lưu style + lựa chọn vào trình duyệt (localStorage) — mở lại vẫn còn.
 
+## Dùng online trên mọi thiết bị (GitHub Pages)
+
+Deploy 1 lần để có 1 link, mở được trên iOS / Android / PC / Mac:
+
+1. Vào repo trên GitHub → tab **Settings**.
+2. (Nếu repo đang **Private**) kéo xuống mục **Danger Zone** → **Change visibility**
+   → đổi sang **Public**. *GitHub Pages bản miễn phí chỉ chạy với repo public.*
+   Tool này không chứa bí mật gì nên để public an toàn. (Muốn giữ private thì
+   dùng Cloudflare Pages thay thế.)
+3. Vào **Settings → Pages**.
+4. Mục **Source** chọn **Deploy from a branch**.
+5. **Branch**: chọn `claude/batch-ui-image-generation-ye8suj`, thư mục **`/ (root)`**
+   → **Save**.
+6. Đợi ~1 phút, tải lại trang. Link sẽ hiện dạng:
+   `https://hphuoc1201.github.io/ui-generator/`
+
+Mỗi lần code được cập nhật (push lên branch đó), trang tự cập nhật theo.
+
+## Cài như app (PWA)
+
+Sau khi có link, bạn có thể cài nó như một app thật:
+
+- **iPhone/iPad (Safari):** mở link → nút **Chia sẻ** → **Thêm vào MH chính**.
+- **Android (Chrome):** mở link → menu ⋮ → **Cài đặt ứng dụng / Thêm vào MH chính**.
+- **PC/Mac (Chrome/Edge):** biểu tượng **Cài đặt** ⊕ trên thanh địa chỉ.
+
+Sau khi cài, mở phát chạy ngay như app, và **dùng được cả khi offline**.
+
 ## Cấu trúc
 
 - `index.html` — giao diện + CSS.
 - `app.js` — thư viện template, cấu hình style, logic ghép prompt & copy.
+- `manifest.json`, `sw.js`, `icon-*.png` — bộ PWA (cài như app + offline).
 
 Không có bước build, không phụ thuộc thư viện ngoài, chạy hoàn toàn offline.
