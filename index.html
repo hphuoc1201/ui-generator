@@ -220,8 +220,9 @@
   .brand-logo-thumb { width: 38px; height: 38px; border-radius: 9px; background: var(--panel-2); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; font-size: 18px; overflow: hidden; flex: 0 0 auto; }
   .brand-logo-thumb img { width: 100%; height: 100%; object-fit: contain; }
   .brand-sum-name { font-size: 13px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .brand-swatches { display: flex; gap: 4px; margin-top: 4px; }
+  .brand-swatches { display: flex; gap: 4px; margin-top: 4px; align-items: center; }
   .brand-swatches span { width: 16px; height: 16px; border-radius: 4px; border: 1px solid rgba(128,128,128,.3); }
+  .swatch-logo-note { font-size: 10px; color: var(--accent); font-weight: 600; }
 
   /* Brand dialog */
   #dlg_brand { width: min(820px, 94vw); }
@@ -229,6 +230,10 @@
   @media (max-width: 680px) { .brand-grid { grid-template-columns: 1fr; } }
   .chkrow-inline { display: flex; align-items: center; gap: 7px; cursor: pointer; }
   .chkrow-inline input { width: 15px; height: 15px; accent-color: var(--accent); }
+  .seg-row { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 4px; }
+  .seg-opt { display: flex; align-items: center; gap: 6px; cursor: pointer; padding: 5px 10px; border: 1px solid var(--border); border-radius: 7px; font-size: 13px; transition: background .12s, border-color .12s; }
+  .seg-opt:has(input:checked) { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .seg-opt input[type="radio"] { display: none; }
   .brand-logo-row { display: flex; align-items: center; gap: 8px; margin-top: 8px; }
   .brand-logo-row img { width: 46px; height: 46px; object-fit: contain; border: 1px solid var(--border); border-radius: 8px; background: #fff; }
   .brand-preview { border: 1px solid var(--border); border-radius: 14px; overflow: hidden; }
@@ -418,24 +423,34 @@
         <input type="text" id="b_name" placeholder="vd: SpaBooking" />
       </div>
       <div class="field">
-        <label>Màu chủ đạo (Primary)</label>
-        <div class="color-row">
-          <input type="color" id="b_primary" value="#2F80ED" />
-          <input type="text" id="b_primary_hex" value="#2F80ED" />
+        <label>Màu sắc</label>
+        <div class="seg-row">
+          <label class="seg-opt"><input type="radio" name="b_color_mode" value="manual" checked /> Chọn màu thủ công</label>
+          <label class="seg-opt"><input type="radio" name="b_color_mode" value="logo" /> Theo logo đính kèm</label>
         </div>
+        <p class="dlg-sub" id="b_color_logo_note" style="display:none;margin:6px 0 0;"></p>
       </div>
-      <div class="field">
-        <label class="chkrow-inline"><input type="checkbox" id="b_sec_auto" checked /> Màu phụ (Secondary) — tự động</label>
-        <div class="color-row" id="b_sec_row" style="display:none;">
-          <input type="color" id="b_secondary" value="#7A5AF8" />
-          <input type="text" id="b_secondary_hex" value="#7A5AF8" />
+      <div id="b_manual_colors">
+        <div class="field">
+          <label>Màu chủ đạo (Primary)</label>
+          <div class="color-row">
+            <input type="color" id="b_primary" value="#2F80ED" />
+            <input type="text" id="b_primary_hex" value="#2F80ED" />
+          </div>
         </div>
-      </div>
-      <div class="field">
-        <label class="chkrow-inline"><input type="checkbox" id="b_acc_auto" checked /> Màu nhấn (Accent) — tự động</label>
-        <div class="color-row" id="b_acc_row" style="display:none;">
-          <input type="color" id="b_accent" value="#F2994A" />
-          <input type="text" id="b_accent_hex" value="#F2994A" />
+        <div class="field">
+          <label class="chkrow-inline"><input type="checkbox" id="b_sec_auto" checked /> Màu phụ (Secondary) — tự động</label>
+          <div class="color-row" id="b_sec_row" style="display:none;">
+            <input type="color" id="b_secondary" value="#7A5AF8" />
+            <input type="text" id="b_secondary_hex" value="#7A5AF8" />
+          </div>
+        </div>
+        <div class="field">
+          <label class="chkrow-inline"><input type="checkbox" id="b_acc_auto" checked /> Màu nhấn (Accent) — tự động</label>
+          <div class="color-row" id="b_acc_row" style="display:none;">
+            <input type="color" id="b_accent" value="#F2994A" />
+            <input type="text" id="b_accent_hex" value="#F2994A" />
+          </div>
         </div>
       </div>
       <div class="field">

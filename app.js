@@ -431,6 +431,7 @@ const DEFAULT_STYLE = {
   aspect: "phone", textlang: "vi", color: "#2F80ED", extra: "",
   appContext: "", refMode: false, refFollow: "style",
   brandName: "", brandSecondary: "", brandAccent: "", // "" = tự động
+  colorMode: "manual", // "manual" | "logo" (trích màu từ logo đính kèm)
 };
 
 let projects = {};   // id -> project
@@ -615,11 +616,16 @@ function appCtx() {
 function brandBlock(includeColors) {
   const s = state.style;
   const name = (s.brandName || "").trim();
+  const colorFromLogo = s.colorMode === "logo";
   const bits = [];
   if (includeColors) {
-    const p = brandPalette();
-    bits.push("Brand colors — use ONLY this palette consistently: primary " + p.primary +
-      ", secondary " + p.secondary + ", accent " + p.accent + ".");
+    if (colorFromLogo && state.logoData) {
+      bits.push("BRAND COLORS: Extract the primary brand color palette directly from the attached logo image (dominant colors, accent colors). Apply these extracted colors consistently across all UI elements — app bar, buttons, chips, icons, highlights. Do not use arbitrary or unrelated colors.");
+    } else {
+      const p = brandPalette();
+      bits.push("Brand colors — use ONLY this palette consistently: primary " + p.primary +
+        ", secondary " + p.secondary + ", accent " + p.accent + ".");
+    }
   }
   if (name) bits.push("The app/brand name is \"" + name + "\".");
   if (state.logoData) {
@@ -1276,11 +1282,16 @@ function renderBrandSummary() {
   if (!state) return;
   const p = brandPalette();
   const name = (state.style.brandName || "").trim();
+  const colorFromLogo = state.style.colorMode === "logo";
   $("#brand_sum_name").textContent = name || "Bộ nhận diện (Brand)";
   const thumb = $("#brand_logo_thumb");
   thumb.innerHTML = state.logoData ? `<img src="${state.logoData}" alt="logo" />` : "🎨";
-  $("#brand_swatches").innerHTML = [p.primary, p.secondary, p.accent]
-    .map(c => `<span style="background:${c}"></span>`).join("");
+  if (colorFromLogo && state.logoData) {
+    $("#brand_swatches").innerHTML = `<span class="swatch-logo-note">màu từ logo</span>`;
+  } else {
+    $("#brand_swatches").innerHTML = [p.primary, p.secondary, p.accent]
+      .map(c => `<span style="background:${c}"></span>`).join("");
+  }
 }
 
 /* Vẽ preview 1 màn app mẫu + components bằng palette hiện tại */
@@ -1323,6 +1334,12 @@ function renderBrandPreview() {
 function syncBrandDialog() {
   const s = state.style;
   $("#b_name").value = s.brandName || "";
+  // color mode radio
+  const colorFromLogo = s.colorMode === "logo";
+  document.querySelectorAll("input[name='b_color_mode']").forEach(r => { r.checked = r.value === (s.colorMode || "manual"); });
+  $("#b_color_logo_note").style.display = colorFromLogo ? "block" : "none";
+  $("#b_manual_colors").style.display = colorFromLogo ? "none" : "block";
+  // manual color pickers
   $("#b_primary").value = s.color; $("#b_primary_hex").value = s.color;
   const secAuto = !(s.brandSecondary && s.brandSecondary.trim());
   const accAuto = !(s.brandAccent && s.brandAccent.trim());
@@ -1337,6 +1354,11 @@ function syncBrandDialog() {
   const hasLogo = !!state.logoData;
   $("#b_logo_row").style.display = hasLogo ? "flex" : "none";
   if (hasLogo) $("#b_logo_preview").src = state.logoData;
+  if (colorFromLogo && !hasLogo) {
+    $("#b_color_logo_note").innerHTML = "⚠️ Chưa upload logo — nhớ upload logo ở bên dưới để AI trích màu.";
+  } else if (colorFromLogo) {
+    $("#b_color_logo_note").innerHTML = "AI sẽ tự trích xuất màu sắc từ logo bạn đính kèm vào ChatGPT.";
+  }
   renderBrandPreview();
 }
 
@@ -1412,6 +1434,12 @@ function initActions() {
   const dlgBrand = $("#dlg_brand");
   $("#open_brand").addEventListener("click", () => { syncBrandDialog(); dlgBrand.showModal(); });
   $("#b_done").addEventListener("click", () => { dlgBrand.close(); renderBrandSummary(); renderLibrary(); });
+
+  document.querySelectorAll("input[name='b_color_mode']").forEach(r => {
+    r.addEventListener("change", () => {
+      state.style.colorMode = r.value; save(); syncBrandDialog(); renderBrandSummary();
+    });
+  });
 
   const setPrimary = v => {
     if (!/^#?[0-9a-fA-F]{6}$/.test(v.trim())) return;
