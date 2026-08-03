@@ -108,21 +108,21 @@ const SCREENS = [
 /* Mỗi field: {key, label, type: multi|single|select|text, options?, default, compile(value)->string} */
 function optEn(options, v) { const o = options.find(x => x.v === v); return o ? (o.en != null ? o.en : o.label) : v; }
 const F = {
-  // multi: chọn nhiều -> "lead a, b, c."
-  multi: (key, label, lead, options, def) => ({ key, label, type: "multi", options, default: def || [],
+  // multi: chọn nhiều -> "lead a, b, c." (có ô "Khác")
+  multi: (key, label, lead, options, def) => ({ key, label, type: "multi", kind: "list", lead, allowOther: true, options, default: def || [],
     compile: v => (v && v.length) ? lead + " " + v.map(x => optEn(options, x)).join(", ") + "." : "" }),
   // single (list): chọn 1 -> "lead en."
-  single: (key, label, lead, options, def) => ({ key, label, type: "single", options, default: def,
+  single: (key, label, lead, options, def) => ({ key, label, type: "single", allowOther: false, options, default: def,
     compile: v => v ? lead + " " + optEn(options, v) + "." : "" }),
-  // clauses (chọn nhiều, mỗi option là 1 câu hoàn chỉnh) -> nối các câu
-  clauses: (key, label, options, def) => ({ key, label, type: "multi", options, default: def || [],
+  // clauses (chọn nhiều, mỗi option là 1 câu hoàn chỉnh) -> nối các câu (có ô "Khác")
+  clauses: (key, label, options, def) => ({ key, label, type: "multi", kind: "clauses", allowOther: true, options, default: def || [],
     compile: v => (v || []).map(x => optEn(options, x)).filter(Boolean).join(" ") }),
   // choice (chọn 1, option là câu hoàn chỉnh, "" = bỏ qua)
-  choice: (key, label, options, def) => ({ key, label, type: "single", options, default: def,
+  choice: (key, label, options, def) => ({ key, label, type: "single", allowOther: false, options, default: def,
     compile: v => optEn(options, v) || "" }),
-  select: (key, label, options, def, tpl) => ({ key, label, type: "select", options, default: def,
+  select: (key, label, options, def, tpl) => ({ key, label, type: "select", allowOther: false, options, default: def,
     compile: v => v ? tpl.replace(/\{v\}/g, v) : "" }),
-  text: (key, label, lead, ph) => ({ key, label, type: "text", placeholder: ph || "", default: "",
+  text: (key, label, lead, ph) => ({ key, label, type: "text", allowOther: false, placeholder: ph || "", default: "",
     compile: v => (v && ("" + v).trim()) ? lead + " " + ("" + v).trim() + "." : "" }),
 };
 
@@ -431,7 +431,6 @@ let state = {
   notes: {},      // id -> string
   fields: {},     // screenId -> { fieldKey: value }
   custom: [],     // {id, name, base, group:"Tuỳ chỉnh"}
-  outMode: "multi", // "multi" = mỗi màn 1 ảnh | "composite" = gộp 1 ảnh
 };
 
 /* Lấy/đặt giá trị câu trả lời cho 1 field của 1 màn */
@@ -443,11 +442,27 @@ function setFieldVal(screen, f, val) {
   if (!state.fields[screen.id]) state.fields[screen.id] = {};
   state.fields[screen.id][f.key] = val; save();
 }
-/* Ghép tất cả câu trả lời của 1 màn thành chuỗi mô tả */
+/* Ghép tất cả câu trả lời của 1 màn thành chuỗi mô tả (gồm cả ô "Khác") */
 function compileFields(screen) {
   const defs = SCREEN_FIELDS[screen.id];
   if (!defs) return "";
-  return defs.map(f => f.compile(fieldVal(screen, f))).filter(Boolean).join(" ");
+  const store = state.fields[screen.id] || {};
+  return defs.map(f => {
+    let out = f.compile(fieldVal(screen, f));
+    if (f.allowOther) {
+      const other = (store[f.key + "__other"] || "").trim();
+      const items = other ? other.split(",").map(x => x.trim()).filter(Boolean) : [];
+      if (items.length) {
+        if (f.kind === "list") {
+          out = out ? out.replace(/\.\s*$/, "") + ", " + items.join(", ") + "."
+                    : f.lead + " " + items.join(", ") + ".";
+        } else {
+          out = (out ? out + " " : "") + "Also include: " + items.join(", ") + ".";
+        }
+      }
+    }
+    return out;
+  }).filter(Boolean).join(" ");
 }
 /* Nội dung màn = base + câu trả lời (dùng cho cả 2 chế độ xuất) */
 function screenContent(screen) {
@@ -701,6 +716,12 @@ function renderLibrary() {
     root.querySelector(".copy-one").addEventListener("click", e => {
       copyText(buildPrompt(s), e.target);
     });
+    const rm = root.querySelector(".card-remove");
+    if (rm) rm.addEventListener("click", () => {
+      state.custom = state.custom.filter(c => c.id !== s.id);
+      delete state.selected[s.id]; delete state.notes[s.id]; delete state.fields[s.id];
+      save(); renderLibrary();
+    });
     wireFields(root, s);
   });
   updateCount();
@@ -710,6 +731,7 @@ function renderLibrary() {
 function renderFieldsHTML(screen) {
   const defs = SCREEN_FIELDS[screen.id];
   if (!defs) return "";
+  const store = state.fields[screen.id] || {};
   const groups = defs.map(f => {
     const val = fieldVal(screen, f);
     let inner = "";
@@ -725,7 +747,13 @@ function renderFieldsHTML(screen) {
     } else if (f.type === "text") {
       inner = `<input type="text" class="mini-input" data-key="${f.key}" value="${escapeHtml(val || "")}" placeholder="${escapeHtml(f.placeholder || "")}" />`;
     }
-    return `<div class="fgroup"><div class="flabel">${escapeHtml(f.label)}</div>${inner}</div>`;
+    // Ô "Khác" cho các field cho phép tự điền
+    let other = "";
+    if (f.allowOther) {
+      const ov = store[f.key + "__other"] || "";
+      other = `<input type="text" class="other-input" data-key="${f.key}" value="${escapeHtml(ov)}" placeholder="＋ Khác (tự điền, cách nhau dấu phẩy)" />`;
+    }
+    return `<div class="fgroup"><div class="flabel">${escapeHtml(f.label)}</div>${inner}${other}</div>`;
   }).join("");
   return `<div class="fields">${groups}</div>`;
 }
@@ -763,6 +791,13 @@ function wireFields(root, screen) {
     const f = defs.find(d => d.key === inp.getAttribute("data-key"));
     inp.addEventListener("input", () => { setFieldVal(screen, f, inp.value); refresh(); });
   });
+  root.querySelectorAll(".other-input").forEach(inp => {
+    inp.addEventListener("input", () => {
+      if (!state.fields[screen.id]) state.fields[screen.id] = {};
+      state.fields[screen.id][inp.getAttribute("data-key") + "__other"] = inp.value;
+      save(); refresh();
+    });
+  });
 }
 
 function cardHTML(s) {
@@ -772,7 +807,10 @@ function cardHTML(s) {
   const hasFields = !!SCREEN_FIELDS[s.id];
   const noteLabel = hasFields ? "✏️ Yêu cầu thêm (ngoài các lựa chọn trên)" : "✏️ Nội dung riêng cho màn này (tuỳ chọn)";
   const notePh = hasFields ? "vd: điều gì đó chưa có trong các lựa chọn trên..." : (HINTS[s.id] || HINT_DEFAULT);
+  const isCustom = ("" + s.id).startsWith("custom-");
+  const removeBtn = isCustom ? `<button class="card-remove" title="Xoá màn này">✕</button>` : "";
   return `<div class="card ${selCls}" id="card-${s.id}">
+    ${removeBtn}
     <div class="card-head">
       <input type="checkbox" class="chk" ${checked} />
       <div>
@@ -795,13 +833,18 @@ function selectedScreens() {
 }
 
 function updateCount() {
-  $("#sel_count").textContent = selectedScreens().length;
+  const n = selectedScreens().length;
+  const info = $("#sel_info");
+  if (n === 0) info.textContent = "Chưa chọn màn nào";
+  else if (n === 1) info.innerHTML = "Đã chọn <b>1</b> màn → 1 prompt (1 ảnh)";
+  else info.innerHTML = "Đã chọn <b>" + n + "</b> màn → gộp vào 1 ảnh";
 }
 
+/* Tự động: >1 màn -> gộp 1 ảnh; 1 màn -> 1 prompt riêng */
 function buildAllText() {
   const sel = selectedScreens();
-  if (state.outMode === "composite") return buildComposite(sel);
-  return sel.map((s, i) => `### ${i + 1}. ${s.name}\n${buildPrompt(s)}`).join("\n\n");
+  if (sel.length <= 1) return sel.map(s => buildPrompt(s)).join("\n\n");
+  return buildComposite(sel);
 }
 
 /* ---------- Clipboard ---------- */
@@ -832,6 +875,103 @@ function escapeHtml(str) {
   return String(str).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 }
 
+/* ---------- Import feature list ---------- */
+const KEYWORDS = {
+  login: ["login", "log in", "sign in", "signin", "đăng nhập", "dang nhap"],
+  signup: ["sign up", "signup", "register", "registration", "đăng ký", "dang ky", "tạo tài khoản"],
+  forgot: ["forgot", "reset password", "quên mật khẩu", "quen mat khau"],
+  otp: ["otp", "verification", "verify", "xác thực", "xac thuc", "mã xác nhận", "2fa"],
+  welcome: ["onboarding", "welcome", "intro", "giới thiệu", "gioi thieu"],
+  permission: ["permission", "quyền", "cấp quyền"],
+  home: ["home", "dashboard", "trang chủ", "trang chu", "tổng quan", "bảng điều khiển"],
+  feed: ["feed", "timeline", "news", "bảng tin", "danh sách bài", "tin tức"],
+  detail: ["detail", "chi tiết", "chi tiet"],
+  search: ["search", "tìm kiếm", "tim kiem", "lọc"],
+  empty: ["empty state", "trạng thái rỗng"],
+  profile: ["profile", "hồ sơ", "ho so", "tài khoản cá nhân"],
+  editprofile: ["edit profile", "sửa hồ sơ", "chỉnh sửa thông tin"],
+  settings: ["setting", "settings", "cài đặt", "cai dat", "tuỳ chọn"],
+  notifications: ["notification", "thông báo", "thong bao"],
+  productlist: ["product list", "products", "danh sách sản phẩm", "cửa hàng", "shop", "catalog", "sản phẩm"],
+  productdetail: ["product detail", "chi tiết sản phẩm"],
+  cart: ["cart", "giỏ hàng", "gio hang", "basket"],
+  checkout: ["checkout", "payment", "thanh toán", "thanh toan", "đặt hàng"],
+  paysuccess: ["order success", "payment success", "thành công", "đặt hàng thành công"],
+  chat: ["chat", "message", "messaging", "nhắn tin", "tin nhắn"],
+  chatlist: ["conversation list", "inbox", "danh sách chat", "hộp thư", "cuộc trò chuyện"],
+  map: ["map", "bản đồ", "ban do", "location", "vị trí"],
+};
+
+function runImport(text) {
+  const lines = text.split("\n").map(l => l.replace(/^[\s\-\*•·\d\.\)]+/, "").trim()).filter(Boolean);
+  const matchedIds = new Set();
+  const unmatched = [];
+  lines.forEach(line => {
+    const low = line.toLowerCase();
+    let hit = false;
+    for (const id in KEYWORDS) {
+      if (KEYWORDS[id].some(k => low.includes(k))) { matchedIds.add(id); hit = true; }
+    }
+    if (!hit) unmatched.push(line);
+  });
+  matchedIds.forEach(id => { state.selected[id] = true; });
+  const added = [];
+  unmatched.forEach((line, i) => {
+    const id = "custom-imp-" + Date.now() + "-" + i;
+    const scr = { id, name: line, base: "a " + line + " screen", group: "Tuỳ chỉnh", desc: "Từ feature list" };
+    state.custom.push(scr); state.selected[id] = true; added.push(scr);
+  });
+  save(); renderLibrary();
+  return { matchedIds: [...matchedIds], added };
+}
+
+/* ---------- Quản lý dự án ---------- */
+const PROJ_KEY = "ui-prompt-studio-projects-v1";
+function loadProjects() { try { return JSON.parse(localStorage.getItem(PROJ_KEY) || "{}"); } catch (e) { return {}; } }
+function saveProjects(p) { try { localStorage.setItem(PROJ_KEY, JSON.stringify(p)); } catch (e) {} }
+function snapshot() {
+  return {
+    style: state.style, selected: state.selected, notes: state.notes,
+    fields: state.fields, custom: state.custom,
+    savedAt: new Date().toLocaleDateString("vi-VN"),
+  };
+}
+function applySnapshot(s) {
+  state.style = Object.assign({}, DEFAULT_STYLE, s.style || {});
+  state.selected = s.selected || {};
+  state.notes = s.notes || {};
+  state.fields = s.fields || {};
+  state.custom = s.custom || [];
+  save(); syncStyleInputs(); updateRefUI(); renderLibrary();
+}
+function renderProjects() {
+  const projs = loadProjects();
+  const names = Object.keys(projs).sort();
+  const list = $("#proj_list");
+  if (!names.length) { list.innerHTML = `<div class="proj-empty">Chưa có dự án nào được lưu.</div>`; return; }
+  list.innerHTML = names.map(n => {
+    const p = projs[n];
+    const cnt = Object.keys(p.selected || {}).length;
+    return `<div class="proj-row" data-name="${escapeHtml(n)}">
+      <div class="pname">${escapeHtml(n)}</div>
+      <span class="pmeta">${cnt} màn · ${escapeHtml(p.savedAt || "")}</span>
+      <button class="btn-ghost btn-sm proj-load">Mở</button>
+      <button class="btn-ghost btn-sm proj-del">🗑</button>
+    </div>`;
+  }).join("");
+  list.querySelectorAll(".proj-row").forEach(row => {
+    const name = row.getAttribute("data-name");
+    row.querySelector(".proj-load").addEventListener("click", () => {
+      applySnapshot(loadProjects()[name]);
+      $("#dlg_projects").close();
+    });
+    row.querySelector(".proj-del").addEventListener("click", () => {
+      if (!confirm("Xoá dự án \"" + name + "\"?")) return;
+      const p = loadProjects(); delete p[name]; saveProjects(p); renderProjects();
+    });
+  });
+}
+
 /* ---------- Toolbar & actions ---------- */
 function initTheme() {
   const btn = $("#theme_toggle");
@@ -848,9 +988,6 @@ function initTheme() {
 
 function initActions() {
   $("#search").addEventListener("input", renderLibrary);
-
-  $("#out_mode").value = state.outMode || "multi";
-  $("#out_mode").addEventListener("change", e => { state.outMode = e.target.value; save(); });
 
   $("#select_all").addEventListener("click", () => {
     // select only currently visible (filtered) screens
@@ -889,6 +1026,44 @@ function initActions() {
     state.custom.push({ id, name, base: desc, group: "Tuỳ chỉnh", desc: "Màn tự định nghĩa" });
     state.selected[id] = true;
     save(); dlgA.close(); renderLibrary();
+  });
+
+  // import feature list
+  const dlgI = $("#dlg_import");
+  $("#import_features").addEventListener("click", () => { $("#import_result").innerHTML = ""; dlgI.showModal(); });
+  $("#close_import").addEventListener("click", () => dlgI.close());
+  $("#run_import").addEventListener("click", () => {
+    const text = $("#import_text").value.trim();
+    if (!text) { alert("Hãy dán danh sách tính năng."); return; }
+    const r = runImport(text);
+    const names = id => (allScreens().find(s => s.id === id) || {}).name || id;
+    const matchedHtml = r.matchedIds.length
+      ? r.matchedIds.map(id => `<span class="tag">${escapeHtml(names(id))}</span>`).join("")
+      : "<i>không có</i>";
+    const addedHtml = r.added.length
+      ? r.added.map(s => `<span class="tag">${escapeHtml(s.name)}</span>`).join("")
+      : "<i>không có</i>";
+    $("#import_result").innerHTML =
+      `<div class="rsec"><b>✅ Đã nhận diện &amp; chọn (${r.matchedIds.length}):</b><br/>${matchedHtml}</div>` +
+      `<div class="rsec"><b>➕ Thêm thành màn tuỳ chỉnh (${r.added.length}):</b><br/>${addedHtml}</div>` +
+      `<div class="rsec" style="color:var(--muted)">Đóng hộp thoại để xem &amp; tinh chỉnh các màn đã chọn. Màn tuỳ chỉnh có thể xoá bằng nút ✕.</div>`;
+  });
+
+  // projects
+  const dlgProj = $("#dlg_projects");
+  $("#open_projects").addEventListener("click", () => { $("#proj_name").value = ""; renderProjects(); dlgProj.showModal(); });
+  $("#close_projects").addEventListener("click", () => dlgProj.close());
+  $("#proj_save").addEventListener("click", () => {
+    const name = $("#proj_name").value.trim();
+    if (!name) { alert("Nhập tên dự án."); return; }
+    const p = loadProjects();
+    if (p[name] && !confirm("Dự án \"" + name + "\" đã tồn tại. Ghi đè?")) return;
+    p[name] = snapshot(); saveProjects(p); $("#proj_name").value = ""; renderProjects();
+  });
+  $("#proj_new").addEventListener("click", () => {
+    if (!confirm("Xoá toàn bộ lựa chọn hiện tại để bắt đầu dự án mới? (Các dự án đã lưu vẫn còn)")) return;
+    state.selected = {}; state.notes = {}; state.fields = {}; state.custom = [];
+    save(); renderLibrary(); dlgProj.close();
   });
 }
 

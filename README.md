@@ -50,21 +50,35 @@ bóng, spacing... của ảnh mẫu, và chỉ tạo **nội dung mới** cho m�
     của bạn cần. Prompt tự cập nhật theo lựa chọn (xem trước ngay trên thẻ).
 - **Mô tả app**: điền một lần, áp dụng cho mọi màn (vd "app quản lý chi tiêu,
   phong cách trẻ trung") để các màn cụ thể và ăn khớp nhau.
-- **Yêu cầu thêm**: mỗi màn vẫn có ô nhập tự do cho những gì chưa có trong các
-  lựa chọn sẵn.
+- **Ô "Khác" cho mỗi câu hỏi**: với các câu hỏi chọn nhiều, luôn có ô *Khác (tự
+  điền)* để bạn thêm mục không có sẵn — vd trang Thanh toán tuỳ loại business có
+  thể cần thêm phần riêng. Áp dụng cho tất cả các màn.
+- **Yêu cầu thêm**: mỗi màn còn có ô nhập tự do cho yêu cầu chung.
 
-## 2 kiểu xuất (chọn ở thanh dưới)
+## Xuất prompt (tự động)
 
-Vì ChatGPT chỉ tạo **1 ảnh mỗi prompt**, tool hỗ trợ 2 cách khi chọn nhiều màn:
+Bấm **Copy prompt** ở thanh dưới:
 
-- **Mỗi màn 1 ảnh (nhiều prompt):** mỗi màn ra 1 prompt riêng (đánh số). Mở nhiều
-  tab ChatGPT, mỗi tab dán 1 prompt → chạy song song, mỗi màn 1 ảnh riêng.
-- **Gộp tất cả vào 1 ảnh:** tạo **1 prompt duy nhất** yêu cầu vẽ tất cả các màn
-  trong **cùng một ảnh** — có ghi rõ *tỉ lệ ảnh tổng (~16:9)*, *tỉ lệ từng màn*
-  (vd 9:19.5), style dùng chung, và nội dung từng màn được đánh số.
+- **Chọn nhiều màn** → tự động tạo **1 prompt gộp tất cả vào 1 ảnh** — ghi rõ
+  *tỉ lệ ảnh tổng (~16:9)*, *tỉ lệ từng màn* (vd 9:19.5), style dùng chung, và
+  nội dung từng màn được đánh số. (Không cần chọn kiểu xuất.)
+- **Chọn 1 màn** → 1 prompt riêng cho màn đó.
 
 Mọi prompt đều bắt đầu bằng câu lệnh **“Create an image: ...”** để ChatGPT hiểu
 rõ là cần **sinh ảnh** (không phải trả lời bằng chữ).
+
+## Import feature list
+
+Có sẵn danh sách tính năng? Bấm **📥 Import feature list**, dán vào (mỗi dòng một
+mục). Hệ thống **tự nhận diện** và chọn sẵn các màn phù hợp (login, giỏ hàng,
+thanh toán, chat...); những mục lạ được **thêm thành màn tuỳ chỉnh** để bạn tinh
+chỉnh (có thể xoá bằng nút ✕ trên thẻ).
+
+## Quản lý dự án
+
+Bấm **📁 Dự án** để **lưu** toàn bộ lựa chọn hiện tại (style, màn đã chọn, câu
+trả lời, màn tuỳ chỉnh) thành một dự án có tên, **mở lại** hoặc **xoá** bất cứ
+lúc nào. Mỗi dự án là một app riêng của bạn.
 
 ## Giao diện sáng/tối
 
