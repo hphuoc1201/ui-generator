@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>UI Prompt Studio — Tạo prompt ảnh UI hàng loạt</title>
+<style>
+  :root {
+    --bg: #0f1117;
+    --panel: #171a23;
+    --panel-2: #1e222e;
+    --border: #2a2f3d;
+    --text: #e6e8ee;
+    --muted: #9aa2b2;
+    --accent: #4f7cff;
+    --accent-2: #2f80ed;
+    --ok: #27ae60;
+    --radius: 12px;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.5;
+  }
+  header.app {
+    padding: 20px 24px;
+    border-bottom: 1px solid var(--border);
+    background: linear-gradient(180deg, #141824, #0f1117);
+    position: sticky; top: 0; z-index: 20;
+  }
+  header.app h1 { margin: 0; font-size: 20px; }
+  header.app p { margin: 4px 0 0; color: var(--muted); font-size: 13px; }
+  .layout { display: grid; grid-template-columns: 320px 1fr; gap: 0; align-items: start; }
+  @media (max-width: 900px) { .layout { grid-template-columns: 1fr; } }
+
+  aside {
+    padding: 20px;
+    border-right: 1px solid var(--border);
+    position: sticky; top: 77px;
+    height: calc(100vh - 77px);
+    overflow-y: auto;
+  }
+  @media (max-width: 900px) { aside { position: static; height: auto; border-right: none; border-bottom: 1px solid var(--border); } }
+  aside h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); margin: 0 0 12px; }
+  .field { margin-bottom: 14px; }
+  .field label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 5px; }
+  .field select, .field input[type="text"] {
+    width: 100%; padding: 8px 10px; border-radius: 8px;
+    background: var(--panel-2); border: 1px solid var(--border); color: var(--text); font-size: 13px;
+  }
+  .field input[type="color"] { width: 44px; height: 32px; padding: 0; border: 1px solid var(--border); border-radius: 8px; background: none; }
+  .color-row { display: flex; align-items: center; gap: 10px; }
+  .color-row input[type="text"] { flex: 1; }
+
+  main { padding: 20px 24px 80px; }
+  .toolbar { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 18px; }
+  .toolbar input[type="text"] {
+    flex: 1; min-width: 180px; padding: 9px 12px; border-radius: 8px;
+    background: var(--panel-2); border: 1px solid var(--border); color: var(--text); font-size: 14px;
+  }
+  .group { margin-bottom: 26px; }
+  .group h3 { font-size: 14px; margin: 0 0 12px; color: var(--text); display: flex; align-items: center; gap: 8px; }
+  .group h3 .count { color: var(--muted); font-weight: 400; font-size: 12px; }
+  .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 14px; }
+
+  .card {
+    background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 14px; display: flex; flex-direction: column; gap: 10px; transition: border-color .15s;
+  }
+  .card.selected { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent) inset; }
+  .card-head { display: flex; align-items: flex-start; gap: 10px; }
+  .card-head input[type="checkbox"] { margin-top: 3px; width: 16px; height: 16px; accent-color: var(--accent); }
+  .card-title { font-weight: 600; font-size: 14px; }
+  .card-desc { font-size: 12px; color: var(--muted); }
+  .preview {
+    background: var(--panel-2); border: 1px solid var(--border); border-radius: 8px;
+    padding: 10px; font-size: 12px; color: var(--muted); max-height: 120px; overflow-y: auto;
+    white-space: pre-wrap; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; line-height: 1.45;
+  }
+  .card textarea {
+    width: 100%; min-height: 44px; resize: vertical; padding: 8px 10px; border-radius: 8px;
+    background: var(--panel-2); border: 1px solid var(--border); color: var(--text); font-size: 12px; font-family: inherit;
+  }
+  .card-actions { display: flex; gap: 8px; }
+
+  button {
+    cursor: pointer; border: none; border-radius: 8px; font-size: 13px; font-weight: 600;
+    padding: 8px 14px; transition: opacity .15s, background .15s;
+  }
+  button:hover { opacity: .9; }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-ghost { background: var(--panel-2); color: var(--text); border: 1px solid var(--border); }
+  .btn-sm { padding: 6px 10px; font-size: 12px; }
+  .btn-copied { background: var(--ok) !important; color: #fff; }
+
+  .stickybar {
+    position: fixed; bottom: 0; left: 0; right: 0; z-index: 30;
+    background: rgba(20,24,34,.96); backdrop-filter: blur(8px);
+    border-top: 1px solid var(--border); padding: 12px 24px;
+    display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+  }
+  .stickybar .info { font-size: 13px; color: var(--muted); flex: 1; min-width: 160px; }
+  .stickybar .info b { color: var(--text); }
+
+  .tip {
+    background: var(--panel); border: 1px solid var(--border); border-left: 3px solid var(--accent);
+    border-radius: 8px; padding: 12px 14px; font-size: 13px; color: var(--muted); margin-bottom: 18px;
+  }
+  .tip b { color: var(--text); }
+
+  dialog {
+    background: var(--panel); color: var(--text); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 20px; width: min(560px, 92vw); max-height: 84vh; overflow-y: auto;
+  }
+  dialog::backdrop { background: rgba(0,0,0,.6); }
+  dialog h3 { margin-top: 0; }
+  dialog pre {
+    white-space: pre-wrap; background: var(--panel-2); border: 1px solid var(--border);
+    border-radius: 8px; padding: 12px; font-size: 12px; max-height: 50vh; overflow-y: auto;
+  }
+  .dialog-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 14px; }
+  .addform .field { margin-bottom: 10px; }
+  .addform textarea { width: 100%; min-height: 70px; padding: 8px 10px; border-radius: 8px; background: var(--panel-2); border: 1px solid var(--border); color: var(--text); font-family: inherit; font-size: 13px; }
+</style>
+</head>
+<body>
+<header class="app">
+  <h1>🎨 UI Prompt Studio</h1>
+  <p>Tạo hàng loạt prompt chuẩn để dán vào ChatGPT sinh ảnh giao diện UI — miễn phí, không cần API.</p>
+</header>
+
+<div class="layout">
+  <!-- ================= STYLE PANEL ================= -->
+  <aside>
+    <h2>Style chung (áp dụng mọi màn)</h2>
+
+    <div class="field">
+      <label>Nền tảng</label>
+      <select id="s_platform"></select>
+    </div>
+    <div class="field">
+      <label>Phong cách thiết kế</label>
+      <select id="s_design"></select>
+    </div>
+    <div class="field">
+      <label>Chế độ</label>
+      <select id="s_mode"></select>
+    </div>
+    <div class="field">
+      <label>Độ chi tiết</label>
+      <select id="s_fidelity"></select>
+    </div>
+    <div class="field">
+      <label>Tỉ lệ / thiết bị</label>
+      <select id="s_aspect"></select>
+    </div>
+    <div class="field">
+      <label>Ngôn ngữ chữ trên UI</label>
+      <select id="s_textlang"></select>
+    </div>
+    <div class="field">
+      <label>Màu chủ đạo</label>
+      <div class="color-row">
+        <input type="color" id="s_color" value="#2F80ED" />
+        <input type="text" id="s_color_hex" value="#2F80ED" />
+      </div>
+    </div>
+    <div class="field">
+      <label>Ghi chú style thêm (tuỳ chọn)</label>
+      <input type="text" id="s_extra" placeholder="vd: bo góc mềm, nhiều khoảng trắng..." />
+    </div>
+
+    <button class="btn-ghost btn-sm" id="reset_style" style="width:100%; margin-top:6px;">↺ Đặt lại style mặc định</button>
+  </aside>
+
+  <!-- ================= MAIN ================= -->
+  <main>
+    <div class="tip">
+      💡 <b>Mẹo chạy song song miễn phí:</b> Chọn nhiều màn → bấm <b>Copy tất cả</b> → mở <b>nhiều tab ChatGPT</b>, mỗi tab dán 1 prompt. Nhiều ảnh sẽ được tạo cùng lúc mà không tốn phí API.
+    </div>
+
+    <div class="toolbar">
+      <input type="text" id="search" placeholder="🔍 Tìm màn hình... (vd: login, cart, chat)" />
+      <button class="btn-ghost" id="add_custom">＋ Thêm màn tuỳ chỉnh</button>
+      <button class="btn-ghost" id="select_all">Chọn tất cả</button>
+      <button class="btn-ghost" id="clear_all">Bỏ chọn</button>
+    </div>
+
+    <div id="library"></div>
+  </main>
+</div>
+
+<!-- ================= STICKY ACTION BAR ================= -->
+<div class="stickybar">
+  <div class="info">Đã chọn <b id="sel_count">0</b> màn hình</div>
+  <button class="btn-ghost" id="preview_all">👁 Xem prompt đã chọn</button>
+  <button class="btn-primary" id="copy_all">📋 Copy tất cả (đánh số)</button>
+</div>
+
+<!-- ================= DIALOG: preview all ================= -->
+<dialog id="dlg_preview">
+  <h3>Prompt của các màn đã chọn</h3>
+  <pre id="preview_content"></pre>
+  <div class="dialog-actions">
+    <button class="btn-ghost" id="close_preview">Đóng</button>
+    <button class="btn-primary" id="copy_from_preview">📋 Copy</button>
+  </div>
+</dialog>
+
+<!-- ================= DIALOG: add custom ================= -->
+<dialog id="dlg_add">
+  <h3>Thêm màn hình tuỳ chỉnh</h3>
+  <div class="addform">
+    <div class="field">
+      <label>Tên màn hình</label>
+      <input type="text" id="c_name" placeholder="vd: Màn hình đặt lịch hẹn" />
+    </div>
+    <div class="field">
+      <label>Mô tả bố cục (tiếng Anh cho kết quả tốt hơn, hoặc tiếng Việt cũng được)</label>
+      <textarea id="c_desc" placeholder="vd: An appointment booking screen with a calendar at top, time-slot chips, service selection, and a confirm button at the bottom."></textarea>
+    </div>
+  </div>
+  <div class="dialog-actions">
+    <button class="btn-ghost" id="close_add">Huỷ</button>
+    <button class="btn-primary" id="save_add">Thêm vào thư viện</button>
+  </div>
+</dialog>
+
+<script src="app.js"></script>
+</body>
+</html>
